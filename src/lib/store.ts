@@ -1,0 +1,157 @@
+import { SPOTS } from "./data";
+import type { ScenicSpot } from "./types";
+
+export interface ItineraryDay {
+  day_no: number;
+  spots: string[];
+}
+export interface Itinerary {
+  id: string;
+  name: string;
+  days: ItineraryDay[];
+  price: number;
+  cover?: string;
+  createdAt: number;
+}
+
+const SPOT_KEY = "tq_spots";
+const ITIN_KEY = "tq_itineraries";
+const QUOTE_KEY = "tq_quotes";
+
+function read<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const v = localStorage.getItem(key);
+    return v ? (JSON.parse(v) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+function write(key: string, val: unknown) {
+  if (typeof window !== "undefined") localStorage.setItem(key, JSON.stringify(val));
+}
+
+// ----- Canh diem -----
+export function getUserSpots(): ScenicSpot[] {
+  return read<ScenicSpot[]>(SPOT_KEY, []);
+}
+export function getAllSpots(): ScenicSpot[] {
+  return [...Object.values(SPOTS), ...getUserSpots()];
+}
+export function spotMap(): Record<string, ScenicSpot> {
+  const m: Record<string, ScenicSpot> = {};
+  for (const s of getAllSpots()) m[s.slug] = s;
+  return m;
+}
+export function addSpot(s: ScenicSpot) {
+  const arr = getUserSpots();
+  arr.push(s);
+  write(SPOT_KEY, arr);
+}
+export function deleteUserSpot(slug: string) {
+  write(SPOT_KEY, getUserSpots().filter((s) => s.slug !== slug));
+}
+export function isUserSpot(slug: string): boolean {
+  return getUserSpots().some((s) => s.slug === slug);
+}
+export function getUserSpot(slug: string): ScenicSpot | undefined {
+  return getUserSpots().find((s) => s.slug === slug);
+}
+export function updateSpot(slug: string, patch: Partial<ScenicSpot>) {
+  write(SPOT_KEY, getUserSpots().map((s) => (s.slug === slug ? { ...s, ...patch, slug } : s)));
+}
+
+// ----- Hanh trinh -----
+export function getItineraries(): Itinerary[] {
+  return read<Itinerary[]>(ITIN_KEY, []);
+}
+export function addItinerary(it: Itinerary) {
+  const arr = getItineraries();
+  arr.push(it);
+  write(ITIN_KEY, arr);
+}
+export function deleteItinerary(id: string) {
+  write(ITIN_KEY, getItineraries().filter((i) => i.id !== id));
+}
+export function getItinerary(id: string): Itinerary | undefined {
+  return getItineraries().find((i) => i.id === id);
+}
+export function updateItinerary(id: string, patch: Partial<Itinerary>) {
+  write(ITIN_KEY, getItineraries().map((i) => (i.id === id ? { ...i, ...patch, id } : i)));
+}
+export function countSpots(it: Itinerary): number {
+  return it.days.reduce((n, d) => n + d.spots.length, 0);
+}
+
+// ----- Bao gia (dua tren hanh trinh) -----
+export interface SavedQuote {
+  id: string;
+  customerId?: string;
+  contactName?: string;
+  contactPhone?: string;
+  itineraryId: string;
+  itineraryName: string;
+  days: number;
+  spotsCount: number;
+  cover?: string;
+  customerName: string;
+  customerEmail: string;
+  departureDate: string;
+  adults: number;
+  children: number;
+  infants: number;
+  adultPrice: number;
+  childPrice: number;
+  infantPrice: number;
+  total: number;
+  note?: string;
+  createdAt: number;
+}
+export function getQuotes(): SavedQuote[] {
+  return read<SavedQuote[]>(QUOTE_KEY, []);
+}
+export function addQuote(q: SavedQuote) {
+  const arr = getQuotes();
+  arr.push(q);
+  write(QUOTE_KEY, arr);
+}
+export function deleteQuote(id: string) {
+  write(QUOTE_KEY, getQuotes().filter((q) => q.id !== id));
+}
+
+// ----- Khach hang (CRM) -----
+export interface ProgressEntry {
+  id: string;
+  week: string;        // VD: "Tuần 25/2026" hoặc "16/06–22/06"
+  content: string;     // nội dung tiến độ công việc trong tuần
+  createdAt: number;
+}
+export interface Customer {
+  id: string;
+  company: string;       // tên công ty
+  email: string;         // email
+  contactName: string;   // người liên hệ
+  contactPhone: string;  // số điện thoại người liên hệ
+  progress: ProgressEntry[];
+  createdAt: number;
+}
+
+const CUSTOMER_KEY = "tq_customers";
+
+export function getCustomers(): Customer[] {
+  return read<Customer[]>(CUSTOMER_KEY, []);
+}
+export function getCustomer(id: string): Customer | undefined {
+  return getCustomers().find((c) => c.id === id);
+}
+export function addCustomer(c: Customer) {
+  const arr = getCustomers();
+  arr.push(c);
+  write(CUSTOMER_KEY, arr);
+}
+export function updateCustomer(id: string, patch: Partial<Customer>) {
+  write(CUSTOMER_KEY, getCustomers().map((c) => (c.id === id ? { ...c, ...patch, id } : c)));
+}
+export function deleteCustomer(id: string) {
+  write(CUSTOMER_KEY, getCustomers().filter((c) => c.id !== id));
+}

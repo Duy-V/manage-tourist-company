@@ -1,0 +1,86 @@
+import Link from "next/link";
+import { TOURS, spotsWithImages } from "@/lib/data";
+
+export default function Home() {
+  const spots = spotsWithImages();
+  return (
+    <main>
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <img src="/images/hero/thanh-dao-1.jpg" alt="Thanh Đảo"
+          className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/30" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-5 px-6 py-28 text-white">
+          <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs backdrop-blur">
+            睿扬旅游 · Ruiyang Travel
+          </span>
+          <h1 className="max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight">
+            Báo giá tour Sơn Đông,<br />
+            <span className="text-white/70">đẹp và nhất quán trong vài phút.</span>
+          </h1>
+          <p className="max-w-xl text-lg text-white/80">
+            Thanh Đảo · Uy Hải · Bồng Lai tiên cảnh · Tế Nam thành phố suối.
+            Chọn tour, nhập thông tin khách — xuất báo giá ngay.
+          </p>
+          <div className="flex gap-3 pt-1">
+            <Link href="/quotes/new" className="rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:bg-white/90">
+              Tạo báo giá
+            </Link>
+            <Link href="/tours" className="rounded-lg border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
+              Xem tour
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* TOUR NỔI BẬT */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="flex items-end justify-between">
+          <h2 className="text-2xl font-semibold tracking-tight">Tour nổi bật</h2>
+          <Link href="/tours" className="text-sm text-[var(--accent)] hover:underline">Tất cả tour →</Link>
+        </div>
+        <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+          {TOURS.map((t) => (
+            <Link key={t.code} href={`/tours/${t.code}`}
+              className="group overflow-hidden rounded-2xl border bg-white transition hover:shadow-md">
+              <div className="relative h-52 overflow-hidden">
+                <img src={t.cover} alt={t.title_vn}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <span className="absolute left-3 top-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-medium text-white">
+                  {t.days}N{t.nights}Đ
+                </span>
+              </div>
+              <div className="p-5">
+                <h3 className="font-semibold tracking-tight">{t.title_vn}</h3>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">{t.tagline_vn}</p>
+                <p className="mt-3 text-sm">
+                  <span className="text-[var(--text-muted)]">Từ </span>
+                  <span className="font-semibold">{new Intl.NumberFormat("vi-VN").format(Math.min(...t.departures.map((d) => d.adult)))} ¥</span>
+                  <span className="text-[var(--text-muted)]"> /khách</span>
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* CẢNH ĐIỂM THỰC TẾ */}
+      <section className="mx-auto max-w-6xl px-6 pb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Cảnh điểm thực tế</h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">Hình ảnh thật từ các điểm đến trong hành trình.</p>
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {spots.map((s) => (
+            <figure key={s.slug} className="group relative overflow-hidden rounded-xl border">
+              <img src={s.image} alt={s.name_vn}
+                className="h-40 w-full object-cover transition duration-500 group-hover:scale-105" />
+              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3">
+                <div className="text-sm font-medium text-white">{s.name_vn}</div>
+                <div className="text-[11px] text-white/70">{s.name_cn} · {s.city}</div>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}

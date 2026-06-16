@@ -1,0 +1,329 @@
+"use client";
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { getItineraries, addQuote, spotMap, countSpots, getCustomers, type Itinerary, type Customer } from "@/lib/store";
+import type { ScenicSpot } from "@/lib/types";
+import { cny } from "@/lib/format";
+import { slugify } from "@/lib/slug";
+
+function Form() {
+  const router = useRouter();
+  const params = useSearchParams();
+
+  const [itins, setItins] = useState<Itinerary[]>([]);
+  const [map, setMap] = useState<Record<string, ScenicSpot>>({});
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [id, setId] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [departure, setDeparture] = useState("");
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [adultPrice, setAdultPrice] = useState(0);
+  const [childPrice, setChildPrice] = useState(0);
+  const [infantPrice, setInfantPrice] = useState(0);
+  const [note, setNote] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const list = getItineraries().sort((a, b) => b.createdAt - a.createdAt);
+    setItins(list);
+    setMap(spotMap());
+    setCustomers(getCustomers().sort((a, b) => a.company.localeCompare(b.company)));
+    const initial = params.get("itinerary") || (list[0]?.id ?? "");
+    if (initial) {
+      setId(initial);
+      const it = list.find((x) => x.id === initial);
+      if (it) setAdultPrice(it.price || 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const itin = useMemo(() => itins.find((x) => x.id === id), [itins, id]);
+  const customer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);
+
+  function onSelect(newId: string) {
+    setId(newId);
+    const it = itins.find((x) => x.id === newId);
+    if (it) setAdultPrice(it.price || 0);
+  }
+
+  const total = adults * adultPrice + children * childPrice + infants * infantPrice;
+  const canSubmit = Boolean(itin) && Boolean(customer) && adults + children + infants > 0;
+
+  const inputCls =
+    "mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15";
+  const labelCls = "text-xs font-medium text-[var(--text-muted)]";
+
+  if (itins.length === 0) {
+    return (
+      <div className="mt-10 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center">
+        <p className="text-sm text-[var(--text-muted)]">Chưa có hành trình nào để báo giá.</p>
+        <Link href="/itineraries/new" className="mt-3 inline-block rounded-lg border bg-white px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">
+          Tạo hành trình trước
+        </Link>
+      </div>
+    );
+  }
+
+  if (submitted && itin && customer) {
+    return (
+      <div className="mt-8">
+        <div className="rounded-2xl border bg-white p-8 print:border-0">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Báo giá hành trình</div>
+              <h2 className="mt-1 text-xl font-semibold">{itin.name}</h2>
+              <div className="text-sm text-[var(--text-muted)]">{itin.days.length} ngày · {countSpots(itin)} cảnh điểm</div>
+            </div>
+            <div className="text-right text-sm">
+              <div className="font-medium">睿扬旅游 · Ruiyang Travel</div>
+              <div className="text-[var(--text-muted)]">{new Date().toLocaleDateString("vi-VN")}</div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-lg bg-[var(--muted)] p-4 text-sm">
+              <div className="text-xs font-medium text-[var(--text-muted)]">Khách hàng</div>
+              <div className="mt-1 font-medium">{customer.company}</div>
+              {customer.contactName && <div className="text-[var(--text-muted)]">Người liên hệ: {customer.contactName}</div>}
+              {customer.contactPhone && <div className="text-[var(--text-muted)]">ĐT: {customer.contactPhone}</div>}
+              {customer.email && <div className="text-[var(--text-muted)]">{customer.email}</div>}
+            </div>
+            <div className="rounded-lg bg-[var(--muted)] p-4 text-sm">
+              <div className="text-xs font-medium text-[var(--text-muted)]">Khởi hành</div>
+              <div className="mt-1 font-medium">{departure || "(thỏa thuận)"}</div>
+            </div>
+          </div>
+
+          <table className="mt-6 w-full text-sm">
+            <thead className="border-b text-left text-[var(--text-muted)]">
+              <tr><th className="py-2 font-medium">Hạng khách</th><th className="py-2 text-right font-medium">SL</th><th className="py-2 text-right font-medium">Đơn giá</th><th className="py-2 text-right font-medium">Thành tiền</th></tr>
+            </thead>
+            <tbody>
+              <Row label="Người lớn" qty={adults} unit={adultPrice} />
+              <Row label="Trẻ em 2–11" qty={children} unit={childPrice} />
+              <Row label="Trẻ dưới 2" qty={infants} unit={infantPrice} />
+            </tbody>
+            <tfoot>
+              <tr className="border-t">
+                <td colSpan={3} className="py-3 text-right font-semibold">Tổng cộng</td>
+                <td className="py-3 text-right text-lg font-bold tabular-nums">{cny(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          {note && <p className="mt-4 text-sm text-[var(--text-muted)]">Ghi chú: {note}</p>}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3 print:hidden">
+          <button onClick={saveQuote} className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">Lưu vào danh sách báo giá</button>
+          <button onClick={() => window.print()} className="rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">In / Lưu PDF</button>
+          <button onClick={() => setSubmitted(false)} className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">Sửa lại</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="space-y-5">
+        {/* Chon hanh trinh */}
+        <label className="block">
+          <span className={labelCls}>Hành trình</span>
+          <select value={id} onChange={(e) => onSelect(e.target.value)} className={inputCls}>
+            {itins.map((it) => (
+              <option key={it.id} value={it.id}>{it.name} · {it.days.length} ngày</option>
+            ))}
+          </select>
+        </label>
+
+        {/* Preview hanh trinh da chon */}
+        {itin && (
+          <div className="rounded-xl border bg-white p-4">
+            <div className="flex items-center gap-3">
+              {itin.cover ? (
+                <img src={itin.cover} alt={itin.name} className="h-14 w-20 rounded-md object-cover" />
+              ) : (
+                <div className="flex h-14 w-20 items-center justify-center rounded-md bg-[var(--muted)] text-xl">🗺</div>
+              )}
+              <div>
+                <div className="font-medium">{itin.name}</div>
+                <div className="text-xs text-[var(--text-muted)]">{itin.days.length} ngày · {countSpots(itin)} cảnh điểm</div>
+              </div>
+            </div>
+            <div className="mt-3 space-y-1 border-t pt-3">
+              {itin.days.map((d) => (
+                <div key={d.day_no} className="flex gap-2 text-xs">
+                  <span className="shrink-0 font-medium text-[var(--accent)]">N{d.day_no}</span>
+                  <span className="text-[var(--text-muted)] line-clamp-1">
+                    {d.spots.length === 0 ? "—" : d.spots.map((s) => map[s]?.name_vn ?? s).join(" · ")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Chon khach hang */}
+        {customers.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-[var(--muted)] p-4 text-sm">
+            <p className="text-[var(--text-muted)]">Chưa có khách hàng nào trong danh sách.</p>
+            <Link href="/customers/new" className="mt-2 inline-block rounded-lg border bg-white px-3 py-1.5 text-sm font-medium hover:bg-[var(--muted)]">
+              + Thêm khách hàng
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <label className="block">
+              <span className={labelCls}>Khách hàng *</span>
+              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={inputCls}>
+                <option value="">— Chọn khách hàng —</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.company}{c.contactName ? ` · ${c.contactName}` : ""}</option>
+                ))}
+              </select>
+            </label>
+            {customer && (
+              <div className="rounded-lg bg-[var(--muted)] p-3 text-sm">
+                <div className="font-medium">{customer.company}</div>
+                <div className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  {[customer.contactName, customer.contactPhone, customer.email].filter(Boolean).join(" · ") || "Không có thông tin liên hệ"}
+                </div>
+                <Link href={`/customers/new?edit=${customer.id}`} className="mt-1 inline-block text-xs text-[var(--accent)] hover:underline">Sửa thông tin →</Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        <label className="block">
+          <span className={labelCls}>Ngày khởi hành</span>
+          <input value={departure} onChange={(e) => setDeparture(e.target.value)} placeholder="VD: 12/09/2026" className={inputCls} />
+        </label>
+
+        {/* Muc dien bao gia */}
+        <div className="rounded-xl border bg-[var(--muted)] p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Điền báo giá (¥ / khách)</div>
+          <div className="mt-3 grid grid-cols-3 gap-3">
+            <PriceField label="Người lớn" value={adultPrice} setValue={setAdultPrice} />
+            <PriceField label="Trẻ 2–11" value={childPrice} setValue={setChildPrice} />
+            <PriceField label="Dưới 2" value={infantPrice} setValue={setInfantPrice} />
+          </div>
+        </div>
+
+        {/* So khach */}
+        <div className="grid grid-cols-3 gap-4">
+          <NumField label="SL người lớn" value={adults} setValue={setAdults} />
+          <NumField label="SL trẻ 2–11" value={children} setValue={setChildren} />
+          <NumField label="SL dưới 2" value={infants} setValue={setInfants} />
+        </div>
+
+        <label className="block">
+          <span className={labelCls}>Ghi chú</span>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={inputCls} placeholder="Yêu cầu riêng của khách…" />
+        </label>
+      </div>
+
+      {/* Tong ket */}
+      <aside className="h-fit rounded-2xl border bg-white p-5">
+        <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Tạm tính</div>
+        <div className="mt-3 space-y-2 text-sm">
+          <Line label={`Người lớn × ${adults}`} val={adults * adultPrice} />
+          <Line label={`Trẻ 2–11 × ${children}`} val={children * childPrice} />
+          <Line label={`Dưới 2 × ${infants}`} val={infants * infantPrice} />
+        </div>
+        <div className="mt-3 flex items-baseline justify-between border-t pt-3">
+          <span className="font-semibold">Tổng</span>
+          <span className="text-xl font-bold tabular-nums">{cny(total)}</span>
+        </div>
+        <button
+          disabled={!canSubmit}
+          onClick={() => setSubmitted(true)}
+          className="mt-5 w-full rounded-lg bg-[var(--text)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Xuất báo giá
+        </button>
+        {!canSubmit && <p className="mt-2 text-center text-xs text-[var(--text-muted)]">Chọn hành trình + chọn khách hàng</p>}
+      </aside>
+    </div>
+  );
+
+  function saveQuote() {
+    if (!itin || !customer) return;
+    addQuote({
+      id: slugify(customer.company) + "-" + Date.now().toString(36),
+      customerId: customer.id,
+      contactName: customer.contactName || undefined,
+      contactPhone: customer.contactPhone || undefined,
+      itineraryId: itin.id,
+      itineraryName: itin.name,
+      days: itin.days.length,
+      spotsCount: countSpots(itin),
+      cover: itin.cover,
+      customerName: customer.company,
+      customerEmail: customer.email,
+      departureDate: departure.trim(),
+      adults,
+      children,
+      infants,
+      adultPrice,
+      childPrice,
+      infantPrice,
+      total,
+      note: note.trim() || undefined,
+      createdAt: Date.now(),
+    });
+    router.push("/quotes");
+  }
+}
+
+function Row({ label, qty, unit }: { label: string; qty: number; unit: number }) {
+  if (qty <= 0) return null;
+  return (
+    <tr className="border-b border-dashed">
+      <td className="py-2">{label}</td>
+      <td className="py-2 text-right tabular-nums">{qty}</td>
+      <td className="py-2 text-right tabular-nums">{cny(unit)}</td>
+      <td className="py-2 text-right tabular-nums">{cny(qty * unit)}</td>
+    </tr>
+  );
+}
+
+function PriceField({ label, value, setValue }: { label: string; value: number; setValue: (n: number) => void }) {
+  return (
+    <label className="block">
+      <span className="text-xs text-[var(--text-muted)]">{label}</span>
+      <input type="number" min={0} value={value}
+        onChange={(e) => setValue(Math.max(0, Number(e.target.value)))}
+        className="mt-1 w-full rounded-lg border bg-white px-2 py-2 text-sm outline-none focus:border-[var(--accent)]" />
+    </label>
+  );
+}
+
+function NumField({ label, value, setValue }: { label: string; value: number; setValue: (n: number) => void }) {
+  return (
+    <label className="block">
+      <span className="text-xs font-medium text-[var(--text-muted)]">{label}</span>
+      <input type="number" min={0} value={value}
+        onChange={(e) => setValue(Math.max(0, Number(e.target.value)))}
+        className="mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)]" />
+    </label>
+  );
+}
+
+function Line({ label, val }: { label: string; val: number }) {
+  return (
+    <div className="flex justify-between text-[var(--text-muted)]">
+      <span>{label}</span><span className="tabular-nums">{cny(val)}</span>
+    </div>
+  );
+}
+
+export default function QuoteForm() {
+  return (
+    <Suspense fallback={<div className="mt-8 text-sm text-[var(--text-muted)]">Đang tải…</div>}>
+      <Form />
+    </Suspense>
+  );
+}

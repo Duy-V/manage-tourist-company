@@ -1,0 +1,123 @@
+import type { ScenicSpot } from "./types";
+import type { SavedQuote, Itinerary } from "./store";
+
+const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
+
+/** Tao file .doc (HTML tuong thich Word) cho 1 bao gia dua tren hanh trinh. */
+export function downloadQuoteDoc(
+  q: SavedQuote,
+  itin: Itinerary | undefined,
+  spotMap: Record<string, ScenicSpot>
+) {
+  const rowsItinerary = itin
+    ? itin.days
+        .map((d) => {
+          const spots = d.spots
+            .map((s) => {
+              const sp = spotMap[s];
+              return sp ? `${sp.name_vn}${sp.name_cn ? ` (${sp.name_cn})` : ""}` : s;
+            })
+            .join(" · ");
+          return `
+      <tr>
+        <td class="c"><b>N${d.day_no}</b></td>
+        <td>${esc(spots) || "—"}</td>
+      </tr>`;
+        })
+        .join("")
+    : "";
+
+  const paxRows = [
+    ["Người lớn", q.adults, q.adultPrice],
+    ["Trẻ em 2–11 tuổi", q.children, q.childPrice],
+    ["Trẻ dưới 2 tuổi", q.infants, q.infantPrice],
+  ]
+    .filter(([, qty]) => (qty as number) > 0)
+    .map(
+      ([label, qty, unit]) => `
+      <tr>
+        <td>${label}</td>
+        <td class="c">${qty}</td>
+        <td class="r">${fmt(unit as number)} ¥</td>
+        <td class="r">${fmt((qty as number) * (unit as number))} ¥</td>
+      </tr>`
+    )
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>Báo giá ${esc(q.itineraryName)}</title>
+<style>
+  body{font-family:"Segoe UI",Arial,sans-serif;color:#111;font-size:11pt;}
+  h1{font-size:16pt;margin:0;}
+  .muted{color:#666;}
+  .brand{color:#1e63d8;font-weight:bold;}
+  table{border-collapse:collapse;width:100%;margin-top:8px;}
+  th,td{border:1px solid #bbb;padding:6px 8px;vertical-align:top;font-size:10pt;}
+  th{background:#eef2f8;text-align:left;}
+  .c{text-align:center;} .r{text-align:right;}
+  .box{border:1px solid #ddd;padding:8px 10px;margin-top:6px;}
+  .total{font-size:13pt;font-weight:bold;color:#1e63d8;}
+</style></head>
+<body>
+  <table style="border:none"><tr style="border:none">
+    <td style="border:none">
+      <h1>${esc(q.itineraryName)}</h1>
+      <div class="muted">${esc(q.days)} ngày · ${esc(q.spotsCount)} cảnh điểm</div>
+    </td>
+    <td style="border:none;text-align:right;width:35%">
+      <div class="brand">睿扬旅游 · RUIYANG TRAVEL</div>
+      <div class="muted">Ngày lập: ${new Date(q.createdAt).toLocaleDateString("vi-VN")}</div>
+    </td>
+  </tr></table>
+
+  <table style="border:none;margin-top:4px"><tr style="border:none">
+    <td style="border:none;width:50%"><div class="box"><b>Khách hàng:</b> ${esc(q.customerName)}${q.contactName ? `<br/><span class="muted">Người liên hệ: ${esc(q.contactName)}${q.contactPhone ? ` · ${esc(q.contactPhone)}` : ""}</span>` : ""}${q.customerEmail ? `<br/><span class="muted">${esc(q.customerEmail)}</span>` : ""}</div></td>
+    <td style="border:none;width:50%"><div class="box"><b>Ngày khởi hành:</b> ${esc(q.departureDate) || "(thỏa thuận)"}</div></td>
+  </tr></table>
+
+  ${
+    rowsItinerary
+      ? `<h3>Lịch trình / 行程</h3>
+  <table>
+    <tr><th style="width:60px">Ngày</th><th>Điểm đến &amp; hoạt động</th></tr>
+    ${rowsItinerary}
+  </table>`
+      : ""
+  }
+
+  <h3>Báo giá / 报价 (CNY)</h3>
+  <table>
+    <tr><th>Hạng khách</th><th class="c">Số lượng</th><th class="r">Đơn giá</th><th class="r">Thành tiền</th></tr>
+    ${paxRows}
+    <tr><td colspan="3" class="r"><b>TỔNG CỘNG</b></td><td class="r total">${fmt(q.total)} ¥</td></tr>
+  </table>
+  ${q.note ? `<div class="box"><b>Ghi chú:</b> ${esc(q.note)}</div>` : ""}
+</body></html>`;
+
+  const blob = new Blob(["﻿", html], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `BaoGia_${slugFile(q.customerName)}_${slugFile(q.itineraryName)}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function esc(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+function slugFile(s: string): string {
+  return (
+    s
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-zA-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "") || "x"
+  );
+}
