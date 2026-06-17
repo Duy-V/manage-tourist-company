@@ -130,7 +130,7 @@ export default function CustomersPage() {
                   </>
                 )}
 
-                <h3 className="pl-9 pr-8 font-semibold tracking-tight">{c.company || "—"}</h3>
+                <h3 className="px-8 text-center font-semibold tracking-tight sm:px-9">{c.company || "—"}</h3>
 
                 <dl className="mt-3 space-y-1 text-sm">
                   <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-[var(--text-muted)]">Người liên hệ</dt><dd>{c.contactName || "—"}</dd></div>

@@ -8,6 +8,7 @@
   --muted: #f1f6fc;
   --border: #e1eaf4;
   --text: #0b1b30;
+  --text-muted: #5b7align;
   --text-muted: #5b6b80;
   /* Brand blue — lay tu logo 睿扬旅游 / Ruiyang Travel */
   --accent: #1366c4;

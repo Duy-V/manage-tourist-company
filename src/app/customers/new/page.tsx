@@ -17,6 +17,9 @@ function CustomerForm() {
   const [email, setEmail] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [taxCode, setTaxCode] = useState("");
+  const [legalRep, setLegalRep] = useState("");
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
 
   useEffect(() => {
@@ -25,6 +28,7 @@ function CustomerForm() {
     if (c) {
       setCompany(c.company); setEmail(c.email); setContactName(c.contactName);
       setContactPhone(c.contactPhone); setProgress(c.progress || []);
+      setAddress(c.address || ""); setTaxCode(c.taxCode || ""); setLegalRep(c.legalRep || "");
     }
   }, [editId]);
 
@@ -51,6 +55,9 @@ function CustomerForm() {
       email: email.trim(),
       contactName: contactName.trim(),
       contactPhone: contactPhone.trim(),
+      address: address.trim() || undefined,
+      taxCode: taxCode.trim() || undefined,
+      legalRep: legalRep.trim() || undefined,
       progress: cleaned,
     };
     if (editing && editId) updateCustomer(editId, data);
@@ -62,13 +69,27 @@ function CustomerForm() {
     <main className="mx-auto max-w-3xl px-6 py-12">
       <Link href="/customers" className="text-sm text-[var(--text-muted)] hover:underline">← Khách hàng</Link>
       <h1 className="mt-3 text-2xl font-semibold tracking-tight">{editing ? "Sửa khách hàng" : "Thêm khách hàng"}</h1>
-      <p className="mt-1 text-sm text-[var(--text-muted)]">Thông tin liên hệ và tiến độ công việc theo tuần.</p>
+      <p className="mt-1 text-sm text-[var(--text-muted)]">Thông tin công ty, liên hệ và tiến độ công việc theo tuần.</p>
 
       <div className="mt-8 space-y-4">
         <label className="block">
           <span className={label}>Tên công ty *</span>
           <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="VD: Công ty TNHH Du lịch ABC" className={input} />
         </label>
+        <label className="block">
+          <span className={label}>Địa chỉ công ty</span>
+          <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="VD: 123 Nguyễn Huệ, Q.1, TP.HCM" className={input} />
+        </label>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className={label}>Mã số thuế</span>
+            <input value={taxCode} onChange={(e) => setTaxCode(e.target.value)} placeholder="VD: 0312345678" className={input} />
+          </label>
+          <label className="block">
+            <span className={label}>Người đại diện pháp luật</span>
+            <input value={legalRep} onChange={(e) => setLegalRep(e.target.value)} placeholder="VD: Bà Trần Thị B" className={input} />
+          </label>
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <label className="block">
             <span className={label}>Người liên hệ</span>

@@ -4,13 +4,14 @@ import "./globals.css";
 import AuthControl from "@/components/AuthControl";
 
 export const metadata: Metadata = {
-  title: "RUIYANG · Sơn Đông",
+  title: "TourQuote · Sơn Đông",
   description: "Công cụ tạo báo giá tour Sơn Đông (Thanh Đảo) nội bộ",
 };
 
 const NAV = [
-  { href: "/tours", label: "Tour & Hành trình" },
+  { href: "/tours", label: "Tour mẫu" },
   { href: "/dashboard", label: "Cảnh điểm" },
+  { href: "/itineraries", label: "Hành trình" },
   { href: "/quotes", label: "Báo giá" },
   { href: "/customers", label: "Khách hàng" },
 ];
@@ -23,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
             <Link href="/" className="flex items-center gap-2">
               <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--accent)] text-[11px] font-bold text-white">睿</span>
-              <span className="text-sm font-semibold tracking-tight">RUIYANG · Sơn Đông</span>
+              <span className="text-sm font-semibold tracking-tight">TourQuote · Sơn Đông</span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               {NAV.map((n) => (
@@ -32,13 +33,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   {n.label}
                 </Link>
               ))}
+              <Link href="/quotes/new"
+                className="ml-1 rounded-md bg-[var(--text)] px-3 py-1.5 font-medium text-white transition hover:opacity-90">
+                + Báo giá
+              </Link>
               <div className="ml-2 border-l pl-2"><AuthControl /></div>
             </nav>
           </div>
         </header>
         {children}
         <footer className="mt-20 border-t py-8 text-center text-xs text-[var(--text-muted)]">
-          RUIYANG · Công cụ báo giá nội bộ · Dữ liệu tour Sơn Đông
+          TourQuote · Công cụ báo giá nội bộ · Dữ liệu tour Sơn Đông
         </footer>
       </body>
     </html>

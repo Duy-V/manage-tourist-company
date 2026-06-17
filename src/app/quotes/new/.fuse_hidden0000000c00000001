@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getItineraries, addQuote, updateQuote, getQuote, spotMap, countSpots, getCustomers, type Itinerary, type Customer } from "@/lib/store";
+import { getItineraries, addQuote, spotMap, countSpots, getCustomers, type Itinerary, type Customer } from "@/lib/store";
 import type { ScenicSpot } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { slugify } from "@/lib/slug";
@@ -11,8 +11,6 @@ import { slugify } from "@/lib/slug";
 function Form() {
   const router = useRouter();
   const params = useSearchParams();
-  const editId = params.get("edit");
-  const editing = Boolean(editId);
 
   const [itins, setItins] = useState<Itinerary[]>([]);
   const [map, setMap] = useState<Record<string, ScenicSpot>>({});
@@ -34,18 +32,6 @@ function Form() {
     setItins(list);
     setMap(spotMap());
     setCustomers(getCustomers().sort((a, b) => a.company.localeCompare(b.company)));
-    if (editId) {
-      const eq = getQuote(editId);
-      if (eq) {
-        setId(eq.itineraryId);
-        setCustomerId(eq.customerId || "");
-        setDeparture(eq.departureDate || "");
-        setAdults(eq.adults); setChildren(eq.children); setInfants(eq.infants);
-        setAdultPrice(eq.adultPrice); setChildPrice(eq.childPrice); setInfantPrice(eq.infantPrice);
-        setNote(eq.note || "");
-      }
-      return;
-    }
     const initial = params.get("itinerary") || (list[0]?.id ?? "");
     if (initial) {
       setId(initial);
@@ -265,7 +251,8 @@ function Form() {
 
   function saveQuote() {
     if (!itin || !customer) return;
-    const data = {
+    addQuote({
+      id: slugify(customer.company) + "-" + Date.now().toString(36),
       customerId: customer.id,
       contactName: customer.contactName || undefined,
       contactPhone: customer.contactPhone || undefined,
@@ -285,12 +272,8 @@ function Form() {
       infantPrice,
       total,
       note: note.trim() || undefined,
-    };
-    if (editing && editId) {
-      updateQuote(editId, data);
-    } else {
-      addQuote({ id: slugify(customer.company) + "-" + Date.now().toString(36), createdAt: Date.now(), ...data });
-    }
+      createdAt: Date.now(),
+    });
     router.push("/quotes");
   }
 }

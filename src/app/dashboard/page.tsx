@@ -1,37 +1,80 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ScenicSpot } from "@/lib/types";
-import { getAllSpots, getUserSpots, deleteUserSpot } from "@/lib/store";
+import { getAllSpots, deleteUserSpot, ensureSeeded } from "@/lib/store";
 import { useRole } from "@/lib/useRole";
+import { matches } from "@/lib/search";
+import SearchBox from "@/components/SearchBox";
 
 export default function ScenicSpotsPage() {
   const role = useRole();
   const isAdmin = role === "admin";
   const [spots, setSpots] = useState<ScenicSpot[]>([]);
-  const [userSlugs, setUserSlugs] = useState<Set<string>>(new Set());
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState<Set<string>>(new Set());
 
   function refresh() {
+    ensureSeeded();
     setSpots(getAllSpots());
-    setUserSlugs(new Set(getUserSpots().map((s) => s.slug)));
   }
   useEffect(() => { refresh(); }, []);
 
-  const cities = Array.from(new Set(spots.map((s) => s.city || "Khác")));
+  const pool = useMemo(() => {
+    const p: Array<string | undefined> = [];
+    for (const s of spots) p.push(s.name_vn, s.name_cn, s.city || "Khác");
+    return p;
+  }, [spots]);
+
+  const shown = spots.filter((s) => matches([s.name_vn, s.name_cn, s.city, s.description], q));
+  const cities = Array.from(new Set(shown.map((s) => s.city || "Khác")));
+
+  const shownSlugs = shown.map((s) => s.slug);
+  const allSelected = shownSlugs.length > 0 && shownSlugs.every((k) => sel.has(k));
+  function toggle(slug: string) {
+    setSel((prev) => { const n = new Set(prev); n.has(slug) ? n.delete(slug) : n.add(slug); return n; });
+  }
+  function toggleAll() {
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (allSelected) shownSlugs.forEach((k) => n.delete(k));
+      else shownSlugs.forEach((k) => n.add(k));
+      return n;
+    });
+  }
+  function bulkDelete() {
+    if (sel.size === 0) return;
+    if (!confirm(`Xóa ${sel.size} cảnh điểm đã chọn?`)) return;
+    sel.forEach((slug) => deleteUserSpot(slug));
+    setSel(new Set());
+    refresh();
+  }
+
+  const cbWrap = "absolute left-2 top-2 z-20 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md bg-white/90 shadow ring-1 ring-black/5";
+  const cb = "h-4 w-4 cursor-pointer accent-[var(--accent)]";
+  const actWrap = "absolute right-2 top-2 z-20 hidden gap-1 group-hover:flex";
+  const btnEdit = "flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-xs shadow ring-1 ring-black/5 hover:bg-[var(--accent)] hover:text-white";
+  const btnDel = "flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-rose-600 shadow ring-1 ring-black/5 hover:bg-rose-600 hover:text-white";
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
-      <div className="flex items-end justify-between border-b pb-6">
+      <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Cảnh điểm</h1>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">{spots.length} cảnh điểm · dùng để dựng hành trình.</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            {q ? `${shown.length} kết quả` : `${spots.length} cảnh điểm · dùng để dựng hành trình.`}
+          </p>
         </div>
         {isAdmin && (
-          <Link href="/spots/new" className="rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+          <Link href="/spots/new" className="shrink-0 rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
             + Thêm cảnh điểm
           </Link>
         )}
+      </div>
+
+      <div className="mt-5">
+        <SearchBox query={q} setQuery={setQ} pool={pool} placeholder="Tìm cảnh điểm, thành phố…" />
       </div>
 
       {!isAdmin && (
@@ -40,28 +83,47 @@ export default function ScenicSpotsPage() {
         </p>
       )}
 
-      <div className="mt-10 space-y-12">
-        {cities.map((city) => {
-          const items = spots.filter((s) => (s.city || "Khác") === city);
-          return (
-            <section key={city}>
-              <div className="mb-4 flex items-center gap-2">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{city}</h2>
-                <span className="text-xs text-[var(--text-muted)]">· {items.length}</span>
-                <div className="ml-2 h-px flex-1 bg-[var(--border)]" />
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {items.map((s) => {
-                  const editable = isAdmin && userSlugs.has(s.slug);
-                  return (
-                    <article key={s.slug} className="group relative overflow-hidden rounded-xl border bg-white">
-                      {editable && (
-                        <div className="absolute right-2 top-2 z-10 hidden gap-1 group-hover:flex">
-                          <Link href={`/spots/new?edit=${s.slug}`} title="Sửa"
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-xs text-white hover:bg-[var(--accent)]">✎</Link>
-                          <button onClick={() => { deleteUserSpot(s.slug); refresh(); }} title="Xóa"
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white hover:bg-rose-600">×</button>
-                        </div>
+      {isAdmin && shown.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input type="checkbox" checked={allSelected} onChange={toggleAll} className={cb} /> Chọn tất cả
+          </label>
+          {sel.size > 0 && (
+            <>
+              <span className="text-[var(--text-muted)]">Đã chọn {sel.size}</span>
+              <button onClick={bulkDelete} className="rounded-lg bg-rose-600 px-3 py-1.5 font-medium text-white hover:bg-rose-700">Xóa đã chọn</button>
+              <button onClick={() => setSel(new Set())} className="text-[var(--text-muted)] hover:underline">Bỏ chọn</button>
+            </>
+          )}
+        </div>
+      )}
+
+      {shown.length === 0 ? (
+        <div className="mt-12 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center">
+          <p className="text-sm text-[var(--text-muted)]">Không tìm thấy cảnh điểm nào khớp “{q}”.</p>
+        </div>
+      ) : (
+        <div className="mt-8 space-y-12">
+          {cities.map((city) => {
+            const items = shown.filter((s) => (s.city || "Khác") === city);
+            return (
+              <section key={city}>
+                <div className="mb-4 flex items-center gap-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{city}</h2>
+                  <span className="text-xs text-[var(--text-muted)]">· {items.length}</span>
+                  <div className="ml-2 h-px flex-1 bg-[var(--border)]" />
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {items.map((s) => (
+                    <article key={s.slug} className={`group relative overflow-hidden rounded-xl border bg-white ${sel.has(s.slug) ? "ring-2 ring-[var(--accent)]" : ""}`}>
+                      {isAdmin && (
+                        <>
+                          <label className={cbWrap}><input type="checkbox" checked={sel.has(s.slug)} onChange={() => toggle(s.slug)} className={cb} /></label>
+                          <div className={actWrap}>
+                            <Link href={`/spots/new?edit=${s.slug}`} title="Sửa" className={btnEdit}>✎</Link>
+                            <button onClick={() => { if (confirm(`Xóa cảnh điểm "${s.name_vn}"?`)) { deleteUserSpot(s.slug); refresh(); } }} title="Xóa" className={btnDel}>×</button>
+                          </div>
+                        </>
                       )}
                       {s.image ? (
                         <img src={s.image} alt={s.name_vn} className="h-36 w-full object-cover" />
@@ -69,21 +131,18 @@ export default function ScenicSpotsPage() {
                         <div className="flex h-36 w-full items-center justify-center bg-[var(--muted)] text-3xl text-slate-300">⛰</div>
                       )}
                       <div className="p-3">
-                        <div className="flex items-center gap-1.5">
-                          <h3 className="text-sm font-medium leading-tight">{s.name_vn}</h3>
-                          {userSlugs.has(s.slug) && <span className="rounded bg-[var(--accent)]/10 px-1 text-[10px] text-[var(--accent)]">mới</span>}
-                        </div>
+                        <h3 className="text-sm font-medium leading-tight">{s.name_vn}</h3>
                         {s.name_cn && <div className="text-[11px] text-[var(--text-muted)]">{s.name_cn}</div>}
                         {s.description && <p className="mt-1 line-clamp-2 text-xs text-[var(--text-muted)]">{s.description}</p>}
                       </div>
                     </article>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }

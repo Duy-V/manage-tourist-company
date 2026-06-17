@@ -38,8 +38,7 @@ export function getUserSpots(): ScenicSpot[] {
   return read<ScenicSpot[]>(SPOT_KEY, []);
 }
 export function getAllSpots(): ScenicSpot[] {
-  const arr = getUserSpots();
-  return arr.length ? arr : Object.values(SPOTS);
+  return [...Object.values(SPOTS), ...getUserSpots()];
 }
 export function spotMap(): Record<string, ScenicSpot> {
   const m: Record<string, ScenicSpot> = {};
@@ -121,12 +120,6 @@ export function addQuote(q: SavedQuote) {
 export function deleteQuote(id: string) {
   write(QUOTE_KEY, getQuotes().filter((q) => q.id !== id));
 }
-export function getQuote(id: string): SavedQuote | undefined {
-  return getQuotes().find((q) => q.id === id);
-}
-export function updateQuote(id: string, patch: Partial<SavedQuote>) {
-  write(QUOTE_KEY, getQuotes().map((q) => (q.id === id ? { ...q, ...patch, id } : q)));
-}
 
 // ----- Khach hang (CRM) -----
 export interface ProgressEntry {
@@ -166,33 +159,4 @@ export function updateCustomer(id: string, patch: Partial<Customer>) {
 }
 export function deleteCustomer(id: string) {
   write(CUSTOMER_KEY, getCustomers().filter((c) => c.id !== id));
-}
-
-// ----- Tour (truoc day la du lieu tinh trong data.ts, nay sua/xoa duoc) -----
-export function getTours(): Tour[] {
-  return read<Tour[]>(TOUR_KEY, TOURS);
-}
-export function getTour(code: string): Tour | undefined {
-  return getTours().find((t) => t.code === code);
-}
-export function addTour(t: Tour) {
-  write(TOUR_KEY, [t, ...getTours()]);
-}
-export function updateTour(code: string, patch: Partial<Tour>) {
-  write(TOUR_KEY, getTours().map((t) => (t.code === code ? { ...t, ...patch } : t)));
-}
-export function deleteTour(code: string) {
-  write(TOUR_KEY, getTours().filter((t) => t.code !== code));
-}
-
-// ----- Seed du lieu goc vao localStorage 1 lan (de moi the deu sua/xoa duoc) -----
-export function ensureSeeded() {
-  if (typeof window === "undefined") return;
-  if (localStorage.getItem(SEED_FLAG)) return;
-  const existingSpots = read<ScenicSpot[]>(SPOT_KEY, []);
-  const have = new Set(existingSpots.map((s) => s.slug));
-  const merged = [...Object.values(SPOTS).filter((s) => !have.has(s.slug)), ...existingSpots];
-  write(SPOT_KEY, merged);
-  if (read<Tour[]>(TOUR_KEY, []).length === 0) write(TOUR_KEY, TOURS);
-  localStorage.setItem(SEED_FLAG, "1");
 }

@@ -12,7 +12,6 @@ export default function CustomersPage() {
   const isAdmin = role === "admin";
   const [items, setItems] = useState<Customer[]>([]);
   const [q, setQ] = useState("");
-  const [sel, setSel] = useState<Set<string>>(new Set());
 
   function refresh() {
     setItems(getCustomers().sort((a, b) => b.createdAt - a.createdAt));
@@ -35,29 +34,6 @@ export default function CustomersPage() {
 
   const shown = items.filter((c) => matches(fields(c), q));
 
-  const shownIds = shown.map((c) => c.id);
-  const allSelected = shownIds.length > 0 && shownIds.every((k) => sel.has(k));
-  function toggle(id: string) {
-    setSel((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  }
-  function toggleAll() {
-    setSel((prev) => {
-      const n = new Set(prev);
-      if (allSelected) shownIds.forEach((k) => n.delete(k));
-      else shownIds.forEach((k) => n.add(k));
-      return n;
-    });
-  }
-  function bulkDelete() {
-    if (sel.size === 0) return;
-    if (!confirm(`Xóa ${sel.size} khách hàng đã chọn?`)) return;
-    sel.forEach((id) => deleteCustomer(id));
-    setSel(new Set());
-    refresh();
-  }
-
-  const cb = "h-4 w-4 cursor-pointer accent-[var(--accent)]";
-
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -68,32 +44,20 @@ export default function CustomersPage() {
           </p>
         </div>
         {isAdmin && (
-          <Link href="/customers/new" className="shrink-0 rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+          <Link href="/customers/new" className="hidden shrink-0 rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 sm:inline-block">
             + Thêm khách hàng
           </Link>
         )}
       </div>
 
-      {items.length > 0 && (
-        <div className="mt-5">
-          <SearchBox query={q} setQuery={setQ} pool={pool} placeholder="Tìm công ty, người liên hệ, SĐT, email…" />
-        </div>
-      )}
-
-      {isAdmin && shown.length > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-          <label className="flex cursor-pointer items-center gap-2">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} className={cb} /> Chọn tất cả
-          </label>
-          {sel.size > 0 && (
-            <>
-              <span className="text-[var(--text-muted)]">Đã chọn {sel.size}</span>
-              <button onClick={bulkDelete} className="rounded-lg bg-rose-600 px-3 py-1.5 font-medium text-white hover:bg-rose-700">Xóa đã chọn</button>
-              <button onClick={() => setSel(new Set())} className="text-[var(--text-muted)] hover:underline">Bỏ chọn</button>
-            </>
-          )}
-        </div>
-      )}
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <SearchBox query={q} setQuery={setQ} pool={pool} placeholder="Tìm công ty, người liên hệ, SĐT, email…" />
+        {isAdmin && (
+          <Link href="/customers/new" className="shrink-0 rounded-lg bg-[var(--text)] px-4 py-2 text-sm font-medium text-white hover:opacity-90 sm:hidden">
+            + Thêm
+          </Link>
+        )}
+      </div>
 
       {items.length === 0 ? (
         <div className="mt-12 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center">
@@ -111,26 +75,21 @@ export default function CustomersPage() {
           <p className="text-sm text-[var(--text-muted)]">Không tìm thấy khách hàng nào khớp “{q}”.</p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {shown.map((c) => {
             const latest = [...c.progress].sort((a, b) => b.createdAt - a.createdAt)[0];
             return (
-              <article key={c.id} className={`group relative overflow-hidden rounded-2xl border bg-white p-5 ${sel.has(c.id) ? "ring-2 ring-[var(--accent)]" : ""}`}>
+              <article key={c.id} className="group relative overflow-hidden rounded-2xl border bg-white p-5">
                 {isAdmin && (
-                  <>
-                    <label className="absolute left-3 top-3 z-20 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md bg-white/90 shadow ring-1 ring-black/5">
-                      <input type="checkbox" checked={sel.has(c.id)} onChange={() => toggle(c.id)} className={cb} />
-                    </label>
-                    <div className="absolute right-3 top-3 z-20 hidden gap-1 group-hover:flex">
-                      <Link href={`/customers/new?edit=${c.id}`} title="Sửa khách hàng"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-xs shadow ring-1 ring-black/5 hover:bg-[var(--accent)] hover:text-white">✎</Link>
-                      <button onClick={() => { if (confirm("Xóa khách hàng này?")) { deleteCustomer(c.id); refresh(); } }} title="Xóa khách hàng"
-                        className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-rose-600 shadow ring-1 ring-black/5 hover:bg-rose-600 hover:text-white">×</button>
-                    </div>
-                  </>
+                  <div className="absolute right-3 top-3 z-10 hidden gap-1 group-hover:flex">
+                    <Link href={`/customers/new?edit=${c.id}`} title="Sửa khách hàng"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-xs text-white hover:bg-[var(--accent)]">✎</Link>
+                    <button onClick={() => { if (confirm("Xóa khách hàng này?")) { deleteCustomer(c.id); refresh(); } }} title="Xóa khách hàng"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white hover:bg-rose-600">×</button>
+                  </div>
                 )}
 
-                <h3 className="pl-9 pr-8 font-semibold tracking-tight">{c.company || "—"}</h3>
+                <h3 className="pr-16 font-semibold tracking-tight">{c.company || "—"}</h3>
 
                 <dl className="mt-3 space-y-1 text-sm">
                   <div className="flex gap-2"><dt className="w-24 shrink-0 text-xs text-[var(--text-muted)]">Người liên hệ</dt><dd>{c.contactName || "—"}</dd></div>

@@ -121,12 +121,6 @@ export function addQuote(q: SavedQuote) {
 export function deleteQuote(id: string) {
   write(QUOTE_KEY, getQuotes().filter((q) => q.id !== id));
 }
-export function getQuote(id: string): SavedQuote | undefined {
-  return getQuotes().find((q) => q.id === id);
-}
-export function updateQuote(id: string, patch: Partial<SavedQuote>) {
-  write(QUOTE_KEY, getQuotes().map((q) => (q.id === id ? { ...q, ...patch, id } : q)));
-}
 
 // ----- Khach hang (CRM) -----
 export interface ProgressEntry {

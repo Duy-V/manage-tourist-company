@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { spotsWithImages } from "@/lib/data";
-import FeaturedItineraries from "@/components/FeaturedItineraries";
+import { TOURS, spotsWithImages } from "@/lib/data";
 
 export default function Home() {
   const allSpots = spotsWithImages();
@@ -35,8 +34,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TOUR NỔI BẬT — lay tu Hanh trinh (toi da 2) */}
-      <FeaturedItineraries />
+      {/* TOUR NỔI BẬT */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <h2 className="text-2xl font-semibold tracking-tight">Tour nổi bật</h2>
+        <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+          {TOURS.map((t) => (
+            <Link key={t.code} href={`/tours/${t.code}`}
+              className="group overflow-hidden rounded-2xl border bg-white transition hover:shadow-md">
+              <div className="relative h-52 overflow-hidden">
+                <img src={t.cover} alt={t.title_vn}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                <span className="absolute left-3 top-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-medium text-white">
+                  {t.days}N{t.nights}Đ
+                </span>
+              </div>
+              <div className="p-5">
+                <h3 className="font-semibold tracking-tight">{t.title_vn}</h3>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">{t.tagline_vn}</p>
+                <p className="mt-3 text-sm">
+                  <span className="text-[var(--text-muted)]">Từ </span>
+                  <span className="font-semibold">{new Intl.NumberFormat("vi-VN").format(Math.min(...t.departures.map((d) => d.adult)))} ¥</span>
+                  <span className="text-[var(--text-muted)]"> /khách</span>
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {/* CẢNH ĐIỂM THỰC TẾ */}
       <section className="mx-auto max-w-6xl px-6 pb-4">
