@@ -6,6 +6,7 @@ import type { ScenicSpot } from "@/lib/types";
 import { getAllSpots, deleteUserSpot, ensureSeeded } from "@/lib/store";
 import { useRole } from "@/lib/useRole";
 import { truncateWords } from "@/lib/format";
+import SpeakButton from "@/components/SpeakButton";
 import { matches } from "@/lib/search";
 import SearchBox from "@/components/SearchBox";
 
@@ -150,6 +151,7 @@ export default function ScenicSpotsPage() {
                         <h3 className="text-sm font-medium leading-tight">{s.name_vn}</h3>
                         {s.name_cn && <div className="text-[11px] text-[var(--text-muted)]">{s.name_cn}</div>}
                         {s.description && <p className="mt-1 text-xs text-[var(--text-muted)]">{truncateWords(s.description, 26)}</p>}
+                        <SpeakButton text={`${s.name_vn}. ${s.description || ""}`} />
                       </div>
                     </article>
                   ))}
