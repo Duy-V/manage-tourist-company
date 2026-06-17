@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { spotsWithImages } from "@/lib/data";
 import FeaturedItineraries from "@/components/FeaturedItineraries";
+import FeaturedSpots from "@/components/FeaturedSpots";
 
 export default function Home() {
-  const allSpots = spotsWithImages();
-  const spots = allSpots.slice(0, 12);
   return (
     <main>
       {/* HERO */}
@@ -38,30 +36,8 @@ export default function Home() {
       {/* TOUR NỔI BẬT — lay tu Hanh trinh (toi da 2) */}
       <FeaturedItineraries />
 
-      {/* CẢNH ĐIỂM THỰC TẾ */}
-      <section className="mx-auto max-w-6xl px-6 pb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Cảnh điểm thực tế</h2>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">Hình ảnh thật từ các điểm đến trong hành trình.</p>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {spots.map((s) => (
-            <figure key={s.slug} className="group relative overflow-hidden rounded-xl border">
-              <img src={s.image} alt={s.name_vn}
-                className="h-40 w-full object-cover transition duration-500 group-hover:scale-105" />
-              <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-3">
-                <div className="text-sm font-medium text-white">{s.name_vn}</div>
-                <div className="text-[11px] text-white/70">{s.name_cn} · {s.city}</div>
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-        {allSpots.length > 12 && (
-          <div className="mt-8 text-center">
-            <Link href="/dashboard" className="inline-block rounded-lg border px-5 py-2.5 text-sm font-medium hover:bg-[var(--muted)]">
-              Xem thêm cảnh điểm →
-            </Link>
-          </div>
-        )}
-      </section>
+      {/* CẢNH ĐIỂM THỰC TẾ — lay tu store (toi da 12) */}
+      <FeaturedSpots />
     </main>
   );
 }

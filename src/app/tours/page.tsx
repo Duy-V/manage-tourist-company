@@ -29,6 +29,21 @@ export default function ToursPage() {
   }
   useEffect(() => { refresh(); }, []);
 
+  // Cuon toi + lam noi bat the duoc tro toi qua #hash (tu trang chu)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash) return;
+    const id = window.location.hash;
+    const t = setTimeout(() => {
+      const el = document.querySelector(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-[var(--accent)]", "ring-offset-2");
+        setTimeout(() => el.classList.remove("ring-2", "ring-[var(--accent)]", "ring-offset-2"), 2500);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [tours, itins]);
+
   function itinCities(it: Itinerary): string[] {
     const set = new Set<string>();
     for (const d of it.days) for (const slug of d.spots) {
@@ -127,7 +142,7 @@ export default function ToursPage() {
           {shownTours.map((t) => {
             const key = `t:${t.code}`;
             return (
-              <article key={t.code} className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:shadow-md ${sel.has(key) ? "ring-2 ring-[var(--accent)]" : ""}`}>
+              <article key={t.code} id={`t-${t.code}`} className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:shadow-md ${sel.has(key) ? "ring-2 ring-[var(--accent)]" : ""}`}>
                 {isAdmin && (
                   <>
                     <label className={cbWrap}><input type="checkbox" checked={sel.has(key)} onChange={() => toggle(key)} className={cb} /></label>
@@ -175,7 +190,7 @@ export default function ToursPage() {
             const key = `i:${it.id}`;
             const cities = itinCities(it);
             return (
-              <article key={it.id} className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:shadow-md ${sel.has(key) ? "ring-2 ring-[var(--accent)]" : ""}`}>
+              <article key={it.id} id={`it-${it.id}`} className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:shadow-md ${sel.has(key) ? "ring-2 ring-[var(--accent)]" : ""}`}>
                 {isAdmin && (
                   <>
                     <label className={cbWrap}><input type="checkbox" checked={sel.has(key)} onChange={() => toggle(key)} className={cb} /></label>

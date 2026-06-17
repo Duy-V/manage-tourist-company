@@ -42,7 +42,7 @@ export default function FeaturedItineraries() {
           {featured.map((it) => {
             const cities = itinCities(it);
             return (
-              <Link key={it.id} href="/tours"
+              <Link key={it.id} href={`/tours#it-${it.id}`}
                 className="group overflow-hidden rounded-2xl border bg-white transition hover:shadow-md">
                 <div className="relative h-52 overflow-hidden">
                   {it.cover ? (
