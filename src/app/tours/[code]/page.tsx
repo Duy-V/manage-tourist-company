@@ -112,8 +112,8 @@ export default function TourDetail({ params }: { params: Promise<{ code: string 
       {tour.departures.length > 0 && (
         <>
           <h2 className="mt-10 text-xl font-semibold tracking-tight">Giá theo ngày khởi hành <span className="text-sm font-normal text-[var(--text-muted)]">(CNY/khách)</span></h2>
-          <div className="mt-4 overflow-hidden rounded-xl border">
-            <table className="w-full text-sm">
+          <div className="mt-4 overflow-x-auto rounded-xl border">
+            <table className="w-full min-w-[560px] text-sm">
               <thead className="bg-[var(--muted)] text-left text-[var(--text-muted)]">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">Tháng</th>

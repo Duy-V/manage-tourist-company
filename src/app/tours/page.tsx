@@ -200,7 +200,7 @@ export default function ToursPage() {
                     </div>
                   </>
                 )}
-                <Link href={`/quotes/new?itinerary=${it.id}`} className="block">
+                <Link href={`/itineraries/${it.id}`} className="block">
                   <div className="relative h-56 overflow-hidden">
                     {it.cover ? (
                       <img src={it.cover} alt={it.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />

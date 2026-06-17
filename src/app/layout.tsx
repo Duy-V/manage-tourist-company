@@ -1,45 +1,23 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
-import AuthControl from "@/components/AuthControl";
+import NavBar from "@/components/NavBar";
+import ContactFab from "@/components/ContactFab";
 
 export const metadata: Metadata = {
   title: "RUIYANG · Sơn Đông",
   description: "Công cụ tạo báo giá tour Sơn Đông (Thanh Đảo) nội bộ",
 };
 
-const NAV = [
-  { href: "/tours", label: "Tour & Hành trình" },
-  { href: "/dashboard", label: "Cảnh điểm" },
-  { href: "/quotes", label: "Báo giá" },
-  { href: "/customers", label: "Khách hàng" },
-];
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
       <body className="min-h-screen bg-white text-[var(--text)]">
-        <header className="sticky top-0 z-20 border-b bg-white/85 backdrop-blur">
-          <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--accent)] text-[11px] font-bold text-white">睿</span>
-              <span className="text-sm font-semibold tracking-tight">RUIYANG · Sơn Đông</span>
-            </Link>
-            <nav className="flex items-center gap-1 text-sm">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href}
-                  className="rounded-md px-3 py-1.5 text-[var(--text-muted)] transition hover:bg-[var(--muted)] hover:text-[var(--text)]">
-                  {n.label}
-                </Link>
-              ))}
-              <div className="ml-2 border-l pl-2"><AuthControl /></div>
-            </nav>
-          </div>
-        </header>
+        <NavBar />
         {children}
         <footer className="mt-20 border-t py-8 text-center text-xs text-[var(--text-muted)]">
           RUIYANG · Công cụ báo giá nội bộ · Dữ liệu tour Sơn Đông
         </footer>
+        <ContactFab />
       </body>
     </html>
   );
