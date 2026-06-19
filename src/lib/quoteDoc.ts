@@ -1,12 +1,12 @@
 import type { ScenicSpot } from "./types";
-import type { SavedQuote, Itinerary } from "./store";
+import type { SavedQuote } from "./store";
 
 const fmt = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
 /** Tao file .doc (HTML tuong thich Word) cho 1 bao gia dua tren hanh trinh. */
 export function downloadQuoteDoc(
   q: SavedQuote,
-  itin: Itinerary | undefined,
+  itin: { days: { day_no: number; spots: string[] }[] } | undefined,
   spotMap: Record<string, ScenicSpot>
 ) {
   const rowsItinerary = itin

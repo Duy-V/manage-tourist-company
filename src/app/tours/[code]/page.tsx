@@ -63,7 +63,7 @@ export default function TourDetail({ params }: { params: Promise<{ code: string 
               <Link href={`/tour/new?edit=${encodeURIComponent(tour.code)}`} className="rounded-lg border px-4 py-1.5 font-medium hover:bg-white">
                 ✎ Sửa tour
               </Link>
-              <Link href={`/quotes/new?itinerary=`} className="rounded-lg bg-[var(--text)] px-4 py-1.5 font-medium text-white hover:opacity-90">
+              <Link href={`/quotes/new?itinerary=${encodeURIComponent(tour.code)}`} className="rounded-lg bg-[var(--text)] px-4 py-1.5 font-medium text-white hover:opacity-90">
                 Tạo báo giá
               </Link>
             </div>

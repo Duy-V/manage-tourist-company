@@ -3,10 +3,84 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getItineraries, addQuote, updateQuote, getQuote, spotMap, countSpots, getCustomers, type Itinerary, type Customer } from "@/lib/store";
-import type { ScenicSpot } from "@/lib/types";
+import { getTours, addQuote, updateQuote, getQuote, spotMap, getCustomers, ensureSeeded, type Customer } from "@/lib/store";
+import type { ScenicSpot, Tour, Departure } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { slugify } from "@/lib/slug";
+
+// ---- Chuong trinh chon de bao gia = Tour (khai niem duy nhat) ----
+interface Program {
+  code: string;
+  name: string;
+  days: { day_no: number; spots: string[] }[];
+  cover?: string;
+  adultPrice: number;
+  childPrice: number;
+  infantPrice: number;
+  departures: Departure[];
+}
+function progSpots(p: Program): number {
+  return p.days.reduce((n, d) => n + d.spots.length, 0);
+}
+function tourToProgram(t: Tour): Program {
+  const dep = t.departures.length
+    ? t.departures.reduce((a, b) => (b.adult < a.adult ? b : a))
+    : undefined;
+  return {
+    code: t.code,
+    name: t.title_vn,
+    days: t.itinerary.map((d) => ({ day_no: d.day_no, spots: d.spots })),
+    cover: t.cover,
+    adultPrice: dep?.adult ?? 0, childPrice: dep?.child ?? 0, infantPrice: dep?.infant ?? 0,
+    departures: t.departures,
+  };
+}
+
+// ---- Do lich khoi hanh cua tour thanh bang ngay dd/mm/yyyy ----
+const VI_DOW = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+interface DateOpt { iso: string; day: number; dow: string; }
+interface MonthGroup { key: string; title: string; price?: number; opts: DateOpt[]; }
+function monthNumFrom(s: string): number | null {
+  const m = s.match(/\d+/);
+  if (!m) return null;
+  const n = parseInt(m[0], 10);
+  return n >= 1 && n <= 12 ? n : null;
+}
+function parseDays(s: string): number[] {
+  return s
+    .split(/[,\s/]+/)
+    .map((x) => parseInt(x, 10))
+    .filter((n) => !isNaN(n) && n >= 1 && n <= 31);
+}
+function isoToLabel(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+function labelToIso(label: string): string | null {
+  const m = label.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+}
+function expandDepartures(deps: Departure[]): MonthGroup[] {
+  const now = new Date();
+  const cy = now.getFullYear();
+  const cm = now.getMonth() + 1;
+  const groups: MonthGroup[] = [];
+  for (const dep of deps) {
+    const mn = monthNumFrom(dep.month);
+    const days = parseDays(dep.dates);
+    if (mn === null || days.length === 0) continue;
+    const year = mn >= cm ? cy : cy + 1;
+    const mm = String(mn).padStart(2, "0");
+    const opts: DateOpt[] = days.map((d) => {
+      const dt = new Date(year, mn - 1, d);
+      return { iso: `${year}-${mm}-${String(d).padStart(2, "0")}`, day: d, dow: VI_DOW[dt.getDay()] };
+    });
+    groups.push({ key: `${year}-${mm}`, title: `Tháng ${mn}/${year}`, price: dep.adult || undefined, opts });
+  }
+  groups.sort((a, b) => a.key.localeCompare(b.key));
+  return groups;
+}
 
 function Form() {
   const router = useRouter();
@@ -14,12 +88,12 @@ function Form() {
   const editId = params.get("edit");
   const editing = Boolean(editId);
 
-  const [itins, setItins] = useState<Itinerary[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [map, setMap] = useState<Record<string, ScenicSpot>>({});
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [id, setId] = useState("");
+  const [code, setCode] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [departure, setDeparture] = useState("");
+  const [dates, setDates] = useState<string[]>([]); // iso yyyy-mm-dd
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
   const [infants, setInfants] = useState(0);
@@ -30,67 +104,82 @@ function Form() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const list = getItineraries().sort((a, b) => b.createdAt - a.createdAt);
-    setItins(list);
+    ensureSeeded();
+    const list = getTours().map(tourToProgram);
+    setPrograms(list);
     setMap(spotMap());
     setCustomers(getCustomers().sort((a, b) => a.company.localeCompare(b.company)));
     if (editId) {
       const eq = getQuote(editId);
       if (eq) {
-        setId(eq.itineraryId);
+        setCode(eq.itineraryId);
         setCustomerId(eq.customerId || "");
-        setDeparture(eq.departureDate || "");
+        setDates((eq.departureDate || "").split(",").map((s) => labelToIso(s)).filter((x): x is string => !!x));
         setAdults(eq.adults); setChildren(eq.children); setInfants(eq.infants);
         setAdultPrice(eq.adultPrice); setChildPrice(eq.childPrice); setInfantPrice(eq.infantPrice);
         setNote(eq.note || "");
       }
       return;
     }
-    const initial = params.get("itinerary") || (list[0]?.id ?? "");
+    const wanted = params.get("itinerary");
+    const initial = (wanted && list.find((p) => p.code === wanted)) || list[0];
     if (initial) {
-      setId(initial);
-      const it = list.find((x) => x.id === initial);
-      if (it) setAdultPrice(it.price || 0);
+      setCode(initial.code);
+      setAdultPrice(initial.adultPrice);
+      setChildPrice(initial.childPrice);
+      setInfantPrice(initial.infantPrice);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const itin = useMemo(() => itins.find((x) => x.id === id), [itins, id]);
+  const program = useMemo(() => programs.find((x) => x.code === code), [programs, code]);
   const customer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);
+  const dateGroups = useMemo(() => expandDepartures(program?.departures ?? []), [program]);
+  const dateSet = useMemo(() => new Set(dates), [dates]);
+  const sortedDates = useMemo(() => [...dates].sort(), [dates]);
+  const departureText = sortedDates.map(isoToLabel).join(", ");
 
-  function onSelect(newId: string) {
-    setId(newId);
-    const it = itins.find((x) => x.id === newId);
-    if (it) setAdultPrice(it.price || 0);
+  function onSelect(newCode: string) {
+    setCode(newCode);
+    setDates([]); // ngay khoi hanh thuoc ve chuong trinh -> reset khi doi
+    const p = programs.find((x) => x.code === newCode);
+    if (p) {
+      setAdultPrice(p.adultPrice);
+      setChildPrice(p.childPrice);
+      setInfantPrice(p.infantPrice);
+    }
+  }
+  function toggleDate(iso: string) {
+    setDates((prev) => (prev.includes(iso) ? prev.filter((x) => x !== iso) : [...prev, iso]));
   }
 
   const total = adults * adultPrice + children * childPrice + infants * infantPrice;
-  const canSubmit = Boolean(itin) && Boolean(customer) && adults + children + infants > 0;
+  const canSubmit = Boolean(program) && Boolean(customer) && adults + children + infants > 0;
 
   const inputCls =
     "mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15";
   const labelCls = "text-xs font-medium text-[var(--text-muted)]";
 
-  if (itins.length === 0) {
+  if (programs.length === 0) {
     return (
       <div className="mt-10 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center">
-        <p className="text-sm text-[var(--text-muted)]">Chưa có hành trình nào để báo giá.</p>
-        <Link href="/itineraries/new" className="mt-3 inline-block rounded-lg border bg-white px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">
-          Tạo hành trình trước
+        <p className="text-sm text-[var(--text-muted)]">Chưa có chương trình nào để báo giá.</p>
+        <Link href="/tour/new" className="mt-3 inline-block rounded-lg border bg-white px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">
+          Tạo chương trình trước
         </Link>
       </div>
     );
   }
 
-  if (submitted && itin && customer) {
+  if (submitted && program && customer) {
     return (
       <div className="mt-8">
         <div className="rounded-2xl border bg-white p-8 print:border-0">
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs uppercase tracking-wide text-[var(--text-muted)]">Báo giá hành trình</div>
-              <h2 className="mt-1 text-xl font-semibold">{itin.name}</h2>
-              <div className="text-sm text-[var(--text-muted)]">{itin.days.length} ngày · {countSpots(itin)} cảnh điểm</div>
+              <h2 className="mt-1 text-xl font-semibold">{program.name}</h2>
+              <div className="text-sm text-[var(--text-muted)]">{program.days.length} ngày · {progSpots(program)} cảnh điểm</div>
             </div>
             <div className="text-right text-sm">
               <div className="font-medium">睿扬旅游 · Ruiyang Travel</div>
@@ -107,8 +196,8 @@ function Form() {
               {customer.email && <div className="text-[var(--text-muted)]">{customer.email}</div>}
             </div>
             <div className="rounded-lg bg-[var(--muted)] p-4 text-sm">
-              <div className="text-xs font-medium text-[var(--text-muted)]">Khởi hành</div>
-              <div className="mt-1 font-medium">{departure || "(thỏa thuận)"}</div>
+              <div className="text-xs font-medium text-[var(--text-muted)]">Ngày khởi hành</div>
+              <div className="mt-1 font-medium">{departureText || "(thỏa thuận)"}</div>
             </div>
           </div>
 
@@ -143,32 +232,32 @@ function Form() {
   return (
     <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="space-y-5">
-        {/* Chon hanh trinh */}
+        {/* Chon chuong trinh */}
         <label className="block">
           <span className={labelCls}>Hành trình</span>
-          <select value={id} onChange={(e) => onSelect(e.target.value)} className={inputCls}>
-            {itins.map((it) => (
-              <option key={it.id} value={it.id}>{it.name} · {it.days.length} ngày</option>
+          <select value={code} onChange={(e) => onSelect(e.target.value)} className={inputCls}>
+            {programs.map((p) => (
+              <option key={p.code} value={p.code}>{p.name} · {p.days.length} ngày</option>
             ))}
           </select>
         </label>
 
-        {/* Preview hanh trinh da chon */}
-        {itin && (
+        {/* Preview chuong trinh da chon */}
+        {program && (
           <div className="rounded-xl border bg-white p-4">
             <div className="flex items-center gap-3">
-              {itin.cover ? (
-                <img src={itin.cover} alt={itin.name} className="h-14 w-20 rounded-md object-cover" />
+              {program.cover ? (
+                <img src={program.cover} alt={program.name} className="h-14 w-20 rounded-md object-cover" />
               ) : (
                 <div className="flex h-14 w-20 items-center justify-center rounded-md bg-[var(--muted)] text-xl">🗺</div>
               )}
               <div>
-                <div className="font-medium">{itin.name}</div>
-                <div className="text-xs text-[var(--text-muted)]">{itin.days.length} ngày · {countSpots(itin)} cảnh điểm</div>
+                <div className="font-medium">{program.name}</div>
+                <div className="text-xs text-[var(--text-muted)]">{program.days.length} ngày · {progSpots(program)} cảnh điểm</div>
               </div>
             </div>
             <div className="mt-3 space-y-1 border-t pt-3">
-              {itin.days.map((d) => (
+              {program.days.map((d) => (
                 <div key={d.day_no} className="flex gap-2 text-xs">
                   <span className="shrink-0 font-medium text-[var(--accent)]">N{d.day_no}</span>
                   <span className="text-[var(--text-muted)] line-clamp-1">
@@ -211,10 +300,61 @@ function Form() {
           </div>
         )}
 
-        <label className="block">
-          <span className={labelCls}>Ngày khởi hành</span>
-          <input value={departure} onChange={(e) => setDeparture(e.target.value)} placeholder="VD: 12/09/2026" className={inputCls} />
-        </label>
+        {/* Ngay khoi hanh - bang click chon nhieu ngay tu lich tour */}
+        <div>
+          <div className="flex items-center justify-between">
+            <span className={labelCls}>Ngày khởi hành <span className="text-[var(--text-muted)]">(bấm chọn, có thể nhiều ngày)</span></span>
+            {dates.length > 0 && (
+              <button type="button" onClick={() => setDates([])} className="text-xs text-[var(--text-muted)] hover:underline">Bỏ chọn hết</button>
+            )}
+          </div>
+
+          {dateGroups.length === 0 ? (
+            <div className="mt-1 rounded-lg border border-dashed bg-[var(--muted)] p-3 text-xs text-[var(--text-muted)]">
+              Chương trình này chưa khai lịch khởi hành. Thêm lịch ở phần sửa chương trình để chọn ngày.
+            </div>
+          ) : (
+            <div className="mt-1 space-y-3">
+              {dateGroups.map((g) => (
+                <div key={g.key} className="rounded-xl border bg-white p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">{g.title}</div>
+                    {g.price ? <div className="text-xs text-[var(--text-muted)]">Từ {cny(g.price)}/khách</div> : null}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {g.opts.map((o) => {
+                      const on = dateSet.has(o.iso);
+                      return (
+                        <button
+                          key={o.iso}
+                          type="button"
+                          onClick={() => toggleDate(o.iso)}
+                          aria-pressed={on}
+                          className={`flex w-11 flex-col items-center rounded-lg border py-1 text-xs transition ${on ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "bg-white hover:bg-[var(--muted)]"}`}
+                        >
+                          <span className={`text-[10px] ${on ? "opacity-90" : "text-[var(--text-muted)]"}`}>{o.dow}</span>
+                          <span className="font-semibold tabular-nums">{String(o.day).padStart(2, "0")}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {dates.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-[var(--text-muted)]">Đã chọn {dates.length} ngày:</span>
+              {sortedDates.map((iso) => (
+                <span key={iso} className="flex items-center gap-1 rounded-full border bg-[var(--muted)] py-0.5 pl-2 pr-1 text-xs">
+                  {isoToLabel(iso)}
+                  <button type="button" onClick={() => toggleDate(iso)} className="flex h-4 w-4 items-center justify-center rounded-full bg-black/10 hover:bg-rose-500 hover:text-white">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Muc dien bao gia */}
         <div className="rounded-xl border bg-[var(--muted)] p-4">
@@ -264,19 +404,19 @@ function Form() {
   );
 
   function saveQuote() {
-    if (!itin || !customer) return;
+    if (!program || !customer) return;
     const data = {
       customerId: customer.id,
       contactName: customer.contactName || undefined,
       contactPhone: customer.contactPhone || undefined,
-      itineraryId: itin.id,
-      itineraryName: itin.name,
-      days: itin.days.length,
-      spotsCount: countSpots(itin),
-      cover: itin.cover,
+      itineraryId: program.code,
+      itineraryName: program.name,
+      days: program.days.length,
+      spotsCount: progSpots(program),
+      cover: program.cover,
       customerName: customer.company,
       customerEmail: customer.email,
-      departureDate: departure.trim(),
+      departureDate: departureText,
       adults,
       children,
       infants,

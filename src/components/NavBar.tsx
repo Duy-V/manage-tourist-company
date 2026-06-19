@@ -5,7 +5,7 @@ import Link from "next/link";
 import AuthControl from "./AuthControl";
 
 const NAV = [
-  { href: "/tours", label: "Tour & Hành trình" },
+  { href: "/tours", label: "Tour" },
   { href: "/dashboard", label: "Cảnh điểm" },
   { href: "/quotes", label: "Báo giá" },
   { href: "/customers", label: "Khách hàng" },

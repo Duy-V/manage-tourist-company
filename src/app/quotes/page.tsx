@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getQuotes, deleteQuote, getItinerary, spotMap, type SavedQuote } from "@/lib/store";
+import { getQuotes, deleteQuote, getTour, spotMap, type SavedQuote } from "@/lib/store";
 import { downloadQuoteDoc } from "@/lib/quoteDoc";
 import { cny } from "@/lib/format";
 import { useRole } from "@/lib/useRole";
@@ -22,7 +22,8 @@ export default function QuotesPage() {
   useEffect(() => { refresh(); }, []);
 
   function exportDoc(qt: SavedQuote) {
-    downloadQuoteDoc(qt, getItinerary(qt.itineraryId), spotMap());
+    const t = getTour(qt.itineraryId);
+    downloadQuoteDoc(qt, t ? { days: t.itinerary } : undefined, spotMap());
   }
 
   const pool = useMemo(() => {

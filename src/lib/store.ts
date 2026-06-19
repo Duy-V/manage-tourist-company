@@ -185,9 +185,41 @@ export function deleteTour(code: string) {
   write(TOUR_KEY, getTours().filter((t) => t.code !== code));
 }
 
+// ----- Gop "Hanh trinh tu tao" vao Tour (1 khai niem duy nhat) -----
+const MIGRATE_FLAG = "tq_itin_migrated_v1";
+function itinToTour(it: Itinerary, sm: Record<string, ScenicSpot>): Tour {
+  const cset = new Set<string>();
+  for (const d of it.days) for (const s of d.spots) { const c = sm[s]?.city; if (c) cset.add(c); }
+  return {
+    code: it.id,
+    title_vn: it.name,
+    days: it.days.length,
+    nights: Math.max(0, it.days.length - 1),
+    cover: it.cover,
+    cities: [...cset],
+    itinerary: it.days.map((d) => ({ day_no: d.day_no, route_vn: "", meals: "", hotel: "", spots: d.spots })),
+    departures: it.price > 0 ? [{ month: "", dates: "", adult: it.price, child: 0, infant: 0 }] : [],
+  };
+}
+export function migrateItinerariesToTours() {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem(MIGRATE_FLAG)) return;
+  const itins = read<Itinerary[]>(ITIN_KEY, []);
+  if (itins.length) {
+    const sm = spotMap();
+    const tours = getTours();
+    const have = new Set(tours.map((t) => t.code));
+    const converted = itins.filter((it) => !have.has(it.id)).map((it) => itinToTour(it, sm));
+    if (converted.length) write(TOUR_KEY, [...converted, ...tours]);
+  }
+  write(ITIN_KEY, []);
+  localStorage.setItem(MIGRATE_FLAG, "1");
+}
+
 // ----- Seed du lieu goc vao localStorage 1 lan (de moi the deu sua/xoa duoc) -----
 export function ensureSeeded() {
   if (typeof window === "undefined") return;
+  migrateItinerariesToTours();
   if (localStorage.getItem(SEED_FLAG)) return;
   const existingSpots = read<ScenicSpot[]>(SPOT_KEY, []);
   const have = new Set(existingSpots.map((s) => s.slug));
