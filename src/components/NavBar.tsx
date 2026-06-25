@@ -23,8 +23,8 @@ export default function NavBar() {
     <header className="sticky top-0 z-30 border-b bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--accent)] text-[11px] font-bold text-white">睿</span>
-          <span className="text-sm font-semibold tracking-tight">RUIYANG · Sơn Đông</span>
+          <img src="/logo.png" alt="GHIỀN ĐI" className="h-10 w-10 rounded-full object-contain" />
+          <span className="text-sm font-semibold tracking-tight">GHIỀN ĐI · Sơn Đông</span>
         </Link>
 
         {/* Desktop / tablet nav */}

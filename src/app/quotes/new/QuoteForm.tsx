@@ -182,7 +182,7 @@ function Form() {
               <div className="text-sm text-[var(--text-muted)]">{program.days.length} ngày · {progSpots(program)} cảnh điểm</div>
             </div>
             <div className="text-right text-sm">
-              <div className="font-medium">睿扬旅游 · Ruiyang Travel</div>
+              <div className="font-medium">睿扬旅游 · GHIỀN ĐI</div>
               <div className="text-[var(--text-muted)]">{new Date().toLocaleDateString("vi-VN")}</div>
             </div>
           </div>

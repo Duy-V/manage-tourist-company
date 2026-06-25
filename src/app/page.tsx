@@ -12,7 +12,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/30" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-4 px-6 py-20 text-white sm:gap-5 sm:py-28">
           <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs backdrop-blur">
-            睿扬旅游 · Ruiyang Travel
+            睿扬旅游 · GHIỀN ĐI
           </span>
           <h1 className="max-w-3xl text-3xl font-semibold leading-[1.1] tracking-tight sm:text-5xl sm:leading-[1.05]">
             Báo giá tour Sơn Đông,<br />

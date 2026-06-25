@@ -66,7 +66,7 @@ export function downloadQuoteDoc(
       <div class="muted">${esc(q.days)} ngày · ${esc(q.spotsCount)} cảnh điểm</div>
     </td>
     <td style="border:none;text-align:right;width:35%">
-      <div class="brand">睿扬旅游 · RUIYANG TRAVEL</div>
+      <div class="brand">睿扬旅游 · GHIỀN ĐI</div>
       <div class="muted">Ngày lập: ${new Date(q.createdAt).toLocaleDateString("vi-VN")}</div>
     </td>
   </tr></table>
