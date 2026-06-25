@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AuthControl from "./AuthControl";
+import { useRole } from "@/lib/useRole";
 
-const NAV = [
+const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
   { href: "/tours", label: "Tour" },
   { href: "/dashboard", label: "Cảnh điểm" },
   { href: "/quotes", label: "Báo giá" },
-  { href: "/customers", label: "Khách hàng" },
+  { href: "/customers", label: "Khách hàng", adminOnly: true },
 ];
 
 export default function NavBar() {
   const [open, setOpen] = useState(false);
+  const isAdmin = useRole() === "admin";
+  const nav = NAV.filter((n) => !n.adminOnly || isAdmin);
 
   // Bao cho ContactFab biet menu mobile dang mo de an no di
   useEffect(() => {
@@ -29,7 +32,7 @@ export default function NavBar() {
 
         {/* Desktop / tablet nav */}
         <nav className="hidden items-center gap-1 text-sm md:flex">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <Link key={n.href} href={n.href}
               className="rounded-md px-3 py-1.5 text-[var(--text-muted)] transition hover:bg-[var(--muted)] hover:text-[var(--text)]">
               {n.label}
@@ -57,7 +60,7 @@ export default function NavBar() {
       {open && (
         <div className="border-t bg-white px-4 py-3 md:hidden">
           <nav className="flex flex-col gap-1 text-sm">
-            {NAV.map((n) => (
+            {nav.map((n) => (
               <Link key={n.href} href={n.href} onClick={() => setOpen(false)}
                 className="rounded-md px-3 py-2 text-[var(--text)] hover:bg-[var(--muted)]">
                 {n.label}

@@ -58,6 +58,16 @@ export default function CustomersPage() {
 
   const cb = "h-4 w-4 cursor-pointer accent-[var(--accent)]";
 
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-md px-6 py-24 text-center">
+        <h1 className="text-lg font-semibold tracking-tight">Khu vực nội bộ</h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">Bạn cần đăng nhập admin để xem trang Khách hàng.</p>
+        <Link href="/" className="mt-5 inline-block text-sm text-[var(--accent)] hover:underline">← Về trang chủ</Link>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">

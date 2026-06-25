@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AutoForm from "@/components/AutoForm";
 import { customerSchema } from "@/lib/schemas";
+import { useRole } from "@/lib/useRole";
 import { addCustomer, getCustomer, updateCustomer, type ProgressEntry } from "@/lib/store";
 import type { FormData } from "@/lib/schema";
 
@@ -15,6 +16,7 @@ function CustomerFormPage() {
   const params = useSearchParams();
   const editId = params.get("edit");
   const editing = Boolean(editId);
+  const isAdmin = useRole() === "admin";
 
   const [initial, setInitial] = useState<FormData | null>(editing ? null : {});
   const [progress, setProgress] = useState<ProgressEntry[]>([]);
@@ -62,6 +64,16 @@ function CustomerFormPage() {
     if (editing && editId) updateCustomer(editId, data);
     else addCustomer({ id: rid(), createdAt: Date.now(), ...data });
     router.push("/customers");
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-md px-6 py-24 text-center">
+        <h1 className="text-lg font-semibold tracking-tight">Khu vực nội bộ</h1>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">Bạn cần đăng nhập admin để thêm/sửa khách hàng.</p>
+        <Link href="/" className="mt-5 inline-block text-sm text-[var(--accent)] hover:underline">← Về trang chủ</Link>
+      </main>
+    );
   }
 
   if (initial === null) {
