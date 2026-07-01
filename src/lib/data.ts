@@ -92,3 +92,9 @@ export function getTour(code: string): Tour | undefined {
 export function spotsWithImages(): ScenicSpot[] {
   return Object.values(SPOTS).filter((s) => s.image);
 }
+
+// Ảnh hiển thị cho 1 cảnh điểm: dùng ảnh thật nếu có, nếu CHƯA có thì thay bằng logo web.
+export function spotImage(s: { image?: string }): string {
+  return s.image && s.image.trim() !== "" ? s.image : "/logo.png";
+}
+

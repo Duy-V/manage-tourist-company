@@ -8,6 +8,7 @@ import { useRole } from "@/lib/useRole";
 import { truncateWords } from "@/lib/format";
 import SpeakButton from "@/components/SpeakButton";
 import { matches } from "@/lib/search";
+import { spotImage } from "@/lib/data";
 import SearchBox from "@/components/SearchBox";
 
 export default function ScenicSpotsPage() {
@@ -142,11 +143,11 @@ export default function ScenicSpotsPage() {
                           </div>
                         </>
                       )}
-                      {s.image ? (
-                        <img src={s.image} alt={s.name_vn} className="h-36 w-full object-cover" />
-                      ) : (
-                        <div className="flex h-36 w-full items-center justify-center bg-[var(--muted)] text-3xl text-slate-300">⛰</div>
-                      )}
+                      <img
+                        src={spotImage(s)}
+                        alt={s.name_vn}
+                        className={s.image ? "h-36 w-full object-cover" : "h-36 w-full bg-[var(--muted)] object-contain p-6 opacity-70"}
+                      />
                       <div className="p-3">
                         <h3 className="text-sm font-medium leading-tight">{s.name_vn}</h3>
                         {s.name_cn && <div className="text-[11px] text-[var(--text-muted)]">{s.name_cn}</div>}

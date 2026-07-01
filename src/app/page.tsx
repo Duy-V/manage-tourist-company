@@ -7,7 +7,7 @@ export default function Home() {
     <main>
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <img src="/images/hero/thanh-dao-1.jpg" alt="Thanh Đảo"
+        <img src="/images/hero/thanh-dao-1.jpg" alt="Tour Sơn Đông — Thanh Đảo, Trung Quốc"
           className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/30" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-start gap-4 px-6 py-20 text-white sm:gap-5 sm:py-28">
@@ -28,6 +28,9 @@ export default function Home() {
             </Link>
             <Link href="/tours" className="rounded-lg border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
               Xem tour
+            </Link>
+            <Link href="/spots" className="rounded-lg border border-white/40 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-white/10">
+              Cảnh điểm
             </Link>
           </div>
         </div>
