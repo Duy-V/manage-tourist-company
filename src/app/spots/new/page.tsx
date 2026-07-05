@@ -6,7 +6,7 @@ import Link from "next/link";
 import AutoForm from "@/components/AutoForm";
 import { spotSchema } from "@/lib/schemas";
 import { addSpot, getUserSpot, updateSpot, getAllSpots, ensureSeeded } from "@/lib/store";
-import { slugify } from "@/lib/slug";
+import { slugify, slugBase } from "@/lib/slug";
 import type { FormData } from "@/lib/schema";
 
 function SpotFormPage() {
@@ -37,11 +37,11 @@ function SpotFormPage() {
     };
     if (!data.name_vn) return;
 
-    // Chan trung ten: so sanh qua slug (khong phan biet hoa thuong / dau).
+    // Chan trung ten: so sanh ten da chuan hoa (khong phan biet hoa thuong / dau).
     // Khi sua thi bo qua chinh the dang sua.
-    const newSlug = slugify(data.name_vn);
+    const newBase = slugBase(data.name_vn);
     const dup = getAllSpots().find(
-      (s) => s.slug !== editSlug && (s.slug === newSlug || slugify(s.name_vn) === newSlug)
+      (s) => s.slug !== editSlug && slugBase(s.name_vn) === newBase
     );
     if (dup) {
       setDupSpot({ slug: dup.slug, name: dup.name_vn, city: dup.city });
@@ -50,7 +50,7 @@ function SpotFormPage() {
     setDupSpot(null);
 
     if (editing && editSlug) updateSpot(editSlug, data);
-    else addSpot({ slug: newSlug, ...data });
+    else addSpot({ slug: slugify(data.name_vn), ...data });
     router.push("/dashboard");
   }
 
