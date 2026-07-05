@@ -69,7 +69,8 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **`src/lib/cloud.ts`:** push từng bản ghi (`pushSpotCloud/pushTourCloud/pushRequestCloud` + delete), `pullAllFromCloud()` kéo toàn bộ về localStorage (lần đầu bảng trống thì tự đẩy seed local lên), phát event `tq:cloud`; hook `useCloudRefresh(cb)` cho trang đọc lại.
 - **`store.ts`:** add/update/delete của spot/tour/quote-request tự push cloud (riêng `addQuoteRequest` chỉ lưu local — form khách `QuoteRequestForm` tự `await pushRequestCloud` để báo lỗi trung thực khi gửi thất bại).
 - **`CloudSync`** (mount trong `layout.tsx`): ensureSeeded + pullAll khi mở web. Trang `/requests` có nút "⟳ Làm mới" gọi lại pullAll.
-- **Khách hàng CRM cũng đã đồng bộ** (bảng `app_customers`: id, company, contact_name, contact_phone + jsonb `data` chứa cả mảng progress). Chưa đồng bộ: `quotes` (báo giá admin lưu) — vẫn localStorage.
+- **Khách hàng CRM cũng đã đồng bộ** (bảng `app_customers`: id, company, contact_name, contact_phone + jsonb `data` chứa cả mảng progress).
+- **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
 ## CẬP NHẬT 16/06 — Báo giá dựa trên hành trình

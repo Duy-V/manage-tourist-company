@@ -9,6 +9,8 @@ import {
   deleteRequestCloud,
   pushCustomerCloud,
   deleteCustomerCloud,
+  pushQuoteCloud,
+  deleteQuoteCloud,
 } from "./cloud";
 
 export interface ItineraryDay {
@@ -132,15 +134,20 @@ export function addQuote(q: SavedQuote) {
   const arr = getQuotes();
   arr.push(q);
   write(QUOTE_KEY, arr);
+  pushQuoteCloud(q);
 }
 export function deleteQuote(id: string) {
   write(QUOTE_KEY, getQuotes().filter((q) => q.id !== id));
+  deleteQuoteCloud(id);
 }
 export function getQuote(id: string): SavedQuote | undefined {
   return getQuotes().find((q) => q.id === id);
 }
 export function updateQuote(id: string, patch: Partial<SavedQuote>) {
-  write(QUOTE_KEY, getQuotes().map((q) => (q.id === id ? { ...q, ...patch, id } : q)));
+  const arr = getQuotes().map((q) => (q.id === id ? { ...q, ...patch, id } : q));
+  write(QUOTE_KEY, arr);
+  const updated = arr.find((q) => q.id === id);
+  if (updated) pushQuoteCloud(updated);
 }
 
 // ----- Yeu cau bao gia (khach gui tu trang tour) -----

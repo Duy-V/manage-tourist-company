@@ -6,13 +6,14 @@
 import { useEffect } from "react";
 import { supabase } from "./supabase";
 import type { ScenicSpot, Tour } from "./types";
-import type { QuoteRequest, Customer } from "./store";
+import type { QuoteRequest, Customer, SavedQuote } from "./store";
 
 // Phai khop key trong store.ts (khong import tu store de tranh vong lap module)
 const SPOT_KEY = "tq_spots";
 const TOUR_KEY = "tq_tours";
 const REQUEST_KEY = "tq_quote_requests";
 const CUSTOMER_KEY = "tq_customers";
+const QUOTE_KEY = "tq_quotes";
 
 const SYNC_EVENT = "tq:cloud";
 
@@ -103,6 +104,31 @@ export function deleteCustomerCloud(id: string) {
     .then(({ error }) => { if (error) warn("xoa khach hang", error); });
 }
 
+function quoteRow(quote: SavedQuote) {
+  // Khong nhung anh base64 vao cloud (nang) — chi giu cover khi la duong link
+  const q = quote.cover?.startsWith("data:") ? { ...quote, cover: undefined } : quote;
+  return {
+    id: q.id,
+    customer_name: q.customerName,
+    itinerary_name: q.itineraryName,
+    departure_date: q.departureDate,
+    total: q.total,
+    data: q,
+    created_at: new Date(q.createdAt).toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+export function pushQuoteCloud(q: SavedQuote) {
+  if (!supabase) return;
+  void supabase.from("app_quotes").upsert(quoteRow(q))
+    .then(({ error }) => { if (error) warn("luu bao gia", error); });
+}
+export function deleteQuoteCloud(id: string) {
+  if (!supabase) return;
+  void supabase.from("app_quotes").delete().eq("id", id)
+    .then(({ error }) => { if (error) warn("xoa bao gia", error); });
+}
+
 // ---------- Anh: luu file vao Storage, chi giu duong link ----------
 /**
  * Nhan dataURL (base64 tu resizeImage) -> tai len bucket "images",
@@ -176,11 +202,12 @@ export async function migrateDataUrlImages(): Promise<void> {
 export async function pullAllFromCloud(): Promise<void> {
   if (!supabase || typeof window === "undefined") return;
   try {
-    const [sp, tr, rq, cs] = await Promise.all([
+    const [sp, tr, rq, cs, qt] = await Promise.all([
       supabase.from("app_spots").select("data"),
       supabase.from("app_tours").select("data"),
       supabase.from("quote_requests").select("data"),
       supabase.from("app_customers").select("data"),
+      supabase.from("app_quotes").select("data"),
     ]);
 
     if (sp.error) warn("doc canh diem", sp.error);
@@ -230,6 +257,18 @@ export async function pullAllFromCloud(): Promise<void> {
         if (error) warn("day khach hang len cloud", error);
       } else {
         writeLocal(CUSTOMER_KEY, cloud);
+      }
+    }
+
+    if (qt.error) warn("doc bao gia", qt.error);
+    else {
+      const cloud = qt.data.map((row) => row.data as SavedQuote);
+      const local = readLocal<SavedQuote>(QUOTE_KEY);
+      if (cloud.length === 0 && local.length > 0) {
+        const { error } = await supabase.from("app_quotes").upsert(local.map(quoteRow));
+        if (error) warn("day bao gia len cloud", error);
+      } else {
+        writeLocal(QUOTE_KEY, cloud);
       }
     }
 

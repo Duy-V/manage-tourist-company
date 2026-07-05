@@ -50,6 +50,19 @@ create table if not exists app_customers (
   updated_at timestamptz default now()
 );
 
+-- 5) BAO GIA DA LUU (SavedQuote — admin tao va luu tu /quotes/new).
+--    Cot phang de giam sat nhanh; du lieu day du nam trong `data`.
+create table if not exists app_quotes (
+  id text primary key,
+  customer_name text,
+  itinerary_name text,
+  departure_date text,
+  total int,
+  data jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- RLS ---------------------------------------------------------
 -- App chua co dang nhap that (admin/admin123 chi o client) nen tam thoi
 -- cho anon key doc/ghi tat ca. Khi nang cap Supabase Auth thi siet lai:
@@ -58,6 +71,7 @@ alter table app_spots enable row level security;
 alter table app_tours enable row level security;
 alter table quote_requests enable row level security;
 alter table app_customers enable row level security;
+alter table app_quotes enable row level security;
 
 drop policy if exists "anon all app_spots" on app_spots;
 create policy "anon all app_spots" on app_spots
@@ -73,4 +87,8 @@ create policy "anon all quote_requests" on quote_requests
 
 drop policy if exists "anon all app_customers" on app_customers;
 create policy "anon all app_customers" on app_customers
+  for all using (true) with check (true);
+
+drop policy if exists "anon all app_quotes" on app_quotes;
+create policy "anon all app_quotes" on app_quotes
   for all using (true) with check (true);

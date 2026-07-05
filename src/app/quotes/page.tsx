@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getQuotes, deleteQuote, getTour, spotMap, type SavedQuote } from "@/lib/store";
 import { downloadQuoteDoc } from "@/lib/quoteDoc";
+import { useCloudRefresh } from "@/lib/cloud";
 import { cny } from "@/lib/format";
 import { useRole } from "@/lib/useRole";
 import { matches } from "@/lib/search";
@@ -20,6 +21,7 @@ export default function QuotesPage() {
     setItems(getQuotes().sort((a, b) => b.createdAt - a.createdAt));
   }
   useEffect(() => { refresh(); }, []);
+  useCloudRefresh(refresh);
 
   function exportDoc(qt: SavedQuote) {
     const t = getTour(qt.itineraryId);
