@@ -1,5 +1,13 @@
 import { SPOTS, TOURS } from "./data";
 import type { ScenicSpot, Tour } from "./types";
+import {
+  pushSpotCloud,
+  deleteSpotCloud,
+  pushTourCloud,
+  deleteTourCloud,
+  pushRequestCloud,
+  deleteRequestCloud,
+} from "./cloud";
 
 export interface ItineraryDay {
   day_no: number;
@@ -50,9 +58,11 @@ export function addSpot(s: ScenicSpot) {
   const arr = getUserSpots();
   arr.push(s);
   write(SPOT_KEY, arr);
+  pushSpotCloud(s);
 }
 export function deleteUserSpot(slug: string) {
   write(SPOT_KEY, getUserSpots().filter((s) => s.slug !== slug));
+  deleteSpotCloud(slug);
 }
 export function isUserSpot(slug: string): boolean {
   return getUserSpots().some((s) => s.slug === slug);
@@ -61,7 +71,10 @@ export function getUserSpot(slug: string): ScenicSpot | undefined {
   return getUserSpots().find((s) => s.slug === slug);
 }
 export function updateSpot(slug: string, patch: Partial<ScenicSpot>) {
-  write(SPOT_KEY, getUserSpots().map((s) => (s.slug === slug ? { ...s, ...patch, slug } : s)));
+  const arr = getUserSpots().map((s) => (s.slug === slug ? { ...s, ...patch, slug } : s));
+  write(SPOT_KEY, arr);
+  const updated = arr.find((s) => s.slug === slug);
+  if (updated) pushSpotCloud(updated);
 }
 
 // ----- Hanh trinh -----
@@ -155,16 +168,21 @@ export function getQuoteRequests(): QuoteRequest[] {
 export function getQuoteRequest(id: string): QuoteRequest | undefined {
   return getQuoteRequests().find((r) => r.id === id);
 }
+// Chi luu local; form khach gui se tu goi pushRequestCloud de cho xac nhan tu cloud.
 export function addQuoteRequest(r: QuoteRequest) {
   const arr = getQuoteRequests();
   arr.push(r);
   write(REQUEST_KEY, arr);
 }
 export function updateQuoteRequest(id: string, patch: Partial<QuoteRequest>) {
-  write(REQUEST_KEY, getQuoteRequests().map((r) => (r.id === id ? { ...r, ...patch, id } : r)));
+  const arr = getQuoteRequests().map((r) => (r.id === id ? { ...r, ...patch, id } : r));
+  write(REQUEST_KEY, arr);
+  const updated = arr.find((r) => r.id === id);
+  if (updated) void pushRequestCloud(updated);
 }
 export function deleteQuoteRequest(id: string) {
   write(REQUEST_KEY, getQuoteRequests().filter((r) => r.id !== id));
+  deleteRequestCloud(id);
 }
 export function countNewQuoteRequests(): number {
   return getQuoteRequests().filter((r) => r.status === "new").length;
@@ -219,12 +237,17 @@ export function getTour(code: string): Tour | undefined {
 }
 export function addTour(t: Tour) {
   write(TOUR_KEY, [t, ...getTours()]);
+  pushTourCloud(t);
 }
 export function updateTour(code: string, patch: Partial<Tour>) {
-  write(TOUR_KEY, getTours().map((t) => (t.code === code ? { ...t, ...patch } : t)));
+  const arr = getTours().map((t) => (t.code === code ? { ...t, ...patch } : t));
+  write(TOUR_KEY, arr);
+  const updated = arr.find((t) => t.code === code);
+  if (updated) pushTourCloud(updated);
 }
 export function deleteTour(code: string) {
   write(TOUR_KEY, getTours().filter((t) => t.code !== code));
+  deleteTourCloud(code);
 }
 
 // ----- Gop "Hanh trinh tu tao" vao Tour (1 khai niem duy nhat) -----

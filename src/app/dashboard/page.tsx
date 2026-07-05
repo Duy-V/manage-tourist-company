@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { ScenicSpot } from "@/lib/types";
 import { getAllSpots, deleteUserSpot, ensureSeeded } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import { useRole } from "@/lib/useRole";
 import { truncateWords } from "@/lib/format";
 import SpeakButton from "@/components/SpeakButton";
@@ -23,6 +24,7 @@ export default function ScenicSpotsPage() {
     setSpots(getAllSpots());
   }
   useEffect(() => { refresh(); }, []);
+  useCloudRefresh(refresh);
 
   // Cuon toi + lam noi bat canh diem duoc tro toi qua #hash (tu trang chu)
   useEffect(() => {

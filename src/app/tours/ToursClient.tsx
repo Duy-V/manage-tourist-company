@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cny } from "@/lib/format";
 import { getTours, deleteTour, ensureSeeded } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import type { Tour } from "@/lib/types";
 import { useRole } from "@/lib/useRole";
 import { matches } from "@/lib/search";
@@ -21,6 +22,7 @@ export default function ToursClient() {
     setTours(getTours());
   }
   useEffect(() => { refresh(); }, []);
+  useCloudRefresh(refresh);
 
   // Cuon toi + lam noi bat the duoc tro toi qua #hash (tu trang chu)
   useEffect(() => {

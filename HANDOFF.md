@@ -63,6 +63,14 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - Lịch sprint & dữ liệu giá gốc: `C:\Users\PC\Desktop\MY WORLD\TRACKING_LEARNING.xlsx`.
 - Báo giá mẫu (đã dựng data theo đây): 2 file docx "THANH ĐẢO 5N4D" và "THANH ĐẢO–TẾ NAM".
 
+## CẬP NHẬT 05/07 — Đồng bộ Supabase (yêu cầu báo giá + cảnh điểm + tour)
+- **Kiến trúc:** localStorage = cache đọc nhanh, Supabase = nguồn chính. Chưa cấu hình `.env.local` → app chạy như cũ (local-only).
+- **Bảng mới** (`db/schema_app.sql`, chạy trong Supabase SQL Editor): `app_spots` (slug + jsonb `data`), `app_tours` (code + jsonb `data`), `quote_requests` (id, name, phone, tour_name, status + jsonb `data`). RLS tạm cho anon full quyền (chưa có auth thật).
+- **`src/lib/cloud.ts`:** push từng bản ghi (`pushSpotCloud/pushTourCloud/pushRequestCloud` + delete), `pullAllFromCloud()` kéo toàn bộ về localStorage (lần đầu bảng trống thì tự đẩy seed local lên), phát event `tq:cloud`; hook `useCloudRefresh(cb)` cho trang đọc lại.
+- **`store.ts`:** add/update/delete của spot/tour/quote-request tự push cloud (riêng `addQuoteRequest` chỉ lưu local — form khách `QuoteRequestForm` tự `await pushRequestCloud` để báo lỗi trung thực khi gửi thất bại).
+- **`CloudSync`** (mount trong `layout.tsx`): ensureSeeded + pullAll khi mở web. Trang `/requests` có nút "⟳ Làm mới" gọi lại pullAll.
+- Chưa đồng bộ: `quotes` (báo giá admin lưu) + `customers` (CRM) — vẫn localStorage.
+
 ## CẬP NHẬT 16/06 — Báo giá dựa trên hành trình
 - `/quotes/new` GIỜ chọn **hành trình đã tạo** (không còn chọn 2 tour seed). Có **ô điền giá** NL/trẻ 2–11/dưới 2 (giá NL prefill từ `itinerary.price`, sửa được) + ngày khởi hành + số khách → tổng.
 - `SavedQuote` (store.ts) đổi sang: `itineraryId, itineraryName, days, spotsCount, cover, customer..., departureDate, adult/child/infantPrice, total`.

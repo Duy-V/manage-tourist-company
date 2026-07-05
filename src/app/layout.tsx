@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
 import ContactFab from "@/components/ContactFab";
+import CloudSync from "@/components/CloudSync";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -64,6 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="vi">
       <body className="min-h-screen bg-white text-[var(--text)]">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+        <CloudSync />
         <NavBar />
         {children}
         <footer className="mt-20 border-t py-8 text-center text-xs text-[var(--text-muted)]">

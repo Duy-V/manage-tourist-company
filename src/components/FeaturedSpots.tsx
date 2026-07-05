@@ -3,15 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ensureSeeded, getAllSpots } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import type { ScenicSpot } from "@/lib/types";
 
 export default function FeaturedSpots() {
   const [withImg, setWithImg] = useState<ScenicSpot[]>([]);
 
+  function refresh() {
+    setWithImg(getAllSpots().filter((s) => s.image));
+  }
   useEffect(() => {
     ensureSeeded();
-    setWithImg(getAllSpots().filter((s) => s.image));
+    refresh();
   }, []);
+  useCloudRefresh(refresh);
 
   const spots = withImg.slice(0, 12);
 

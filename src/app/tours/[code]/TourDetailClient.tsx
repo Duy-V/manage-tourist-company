@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { getTour, spotMap, ensureSeeded } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import { spotImage } from "@/lib/data";
 import type { Tour, ScenicSpot } from "@/lib/types";
 import { cny } from "@/lib/format";
@@ -23,6 +24,10 @@ export default function TourDetailClient({ params }: { params: Promise<{ code: s
     setMap(spotMap());
     setReady(true);
   }, [code]);
+  useCloudRefresh(() => {
+    setTour(getTour(decodeURIComponent(code)));
+    setMap(spotMap());
+  });
 
   if (!ready) {
     return <main className="mx-auto max-w-5xl px-6 py-10 text-sm text-[var(--text-muted)]">Đang tải…</main>;

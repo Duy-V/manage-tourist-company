@@ -10,6 +10,7 @@ import {
   type QuoteRequestStatus,
 } from "@/lib/store";
 import { useRole } from "@/lib/useRole";
+import { useCloudRefresh, pullAllFromCloud } from "@/lib/cloud";
 import { matches } from "@/lib/search";
 import SearchBox from "@/components/SearchBox";
 
@@ -38,6 +39,7 @@ export default function RequestsPage() {
     setItems(getQuoteRequests().sort((a, b) => b.createdAt - a.createdAt));
   }
   useEffect(() => { refresh(); }, []);
+  useCloudRefresh(refresh);
 
   const pool = useMemo(() => {
     const p: Array<string | undefined> = [];
@@ -73,6 +75,12 @@ export default function RequestsPage() {
               : `${items.length} yêu cầu từ khách${newCount > 0 ? ` · ${newCount} chưa xử lý` : ""}`}
           </p>
         </div>
+        <button
+          onClick={() => void pullAllFromCloud()}
+          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]"
+        >
+          ⟳ Làm mới
+        </button>
       </div>
 
       {items.length > 0 && (

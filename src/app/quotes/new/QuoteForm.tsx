@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getTours, addQuote, updateQuote, getQuote, spotMap, getCustomers, ensureSeeded, type Customer } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import type { ScenicSpot, Tour, Departure } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { slugify } from "@/lib/slug";
@@ -131,6 +132,12 @@ function Form() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Sau khi dong bo cloud xong thi doc lai danh sach chuong trinh/canh diem
+  // (giu nguyen lua chon va gia dang dien do)
+  useCloudRefresh(() => {
+    setPrograms(getTours().map(tourToProgram));
+    setMap(spotMap());
+  });
 
   const program = useMemo(() => programs.find((x) => x.code === code), [programs, code]);
   const customer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);

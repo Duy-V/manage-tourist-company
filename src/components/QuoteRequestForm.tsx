@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { addQuoteRequest } from "@/lib/store";
+import { addQuoteRequest, type QuoteRequest } from "@/lib/store";
+import { pushRequestCloud } from "@/lib/cloud";
 import { slugify } from "@/lib/slug";
 
 const inputCls =
@@ -26,16 +27,18 @@ export default function QuoteRequestForm({
   const [infants, setInfants] = useState(0);
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
   const canSubmit = name.trim().length > 0 && phone.trim().length > 0 && adults + children + infants > 0;
 
-  function submit() {
+  async function submit() {
     if (!canSubmit) {
       setError("Vui lòng điền họ tên, số điện thoại và số khách.");
       return;
     }
-    addQuoteRequest({
+    setError("");
+    const req: QuoteRequest = {
       id: slugify(name) + "-" + Date.now().toString(36),
       tourCode,
       tourName,
@@ -50,7 +53,15 @@ export default function QuoteRequestForm({
       note: note.trim() || undefined,
       status: "new",
       createdAt: Date.now(),
-    });
+    };
+    setSending(true);
+    addQuoteRequest(req);                    // luu tren may
+    const ok = await pushRequestCloud(req);  // gui len Supabase (neu da cau hinh)
+    setSending(false);
+    if (!ok) {
+      setError("Gửi chưa thành công (mất kết nối máy chủ). Vui lòng bấm gửi lại hoặc liên hệ trực tiếp.");
+      return;
+    }
     setSent(true);
   }
 
@@ -110,13 +121,14 @@ export default function QuoteRequestForm({
           placeholder="Yêu cầu riêng: khách sạn, ăn uống, đoàn riêng…" />
       </label>
 
-      {error && !canSubmit && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+      {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
 
       <button
-        onClick={submit}
-        className="mt-5 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 sm:w-auto sm:px-8"
+        onClick={() => void submit()}
+        disabled={sending}
+        className="mt-5 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:px-8"
       >
-        Gửi yêu cầu báo giá
+        {sending ? "Đang gửi…" : "Gửi yêu cầu báo giá"}
       </button>
     </section>
   );

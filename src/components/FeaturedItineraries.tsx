@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ensureSeeded, getTours } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import type { Tour } from "@/lib/types";
 import { cny } from "@/lib/format";
 
@@ -13,6 +14,7 @@ export default function FeaturedItineraries() {
     ensureSeeded();
     setTours(getTours());
   }, []);
+  useCloudRefresh(() => setTours(getTours()));
 
   // Chi lay toi da 2 chuong trinh noi bat
   const featured = tours.slice(0, 2);

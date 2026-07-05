@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { ScenicSpot, Tour, TourDay, Departure } from "@/lib/types";
 import { getAllSpots, addTour, getTour, updateTour, ensureSeeded } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import { slugify } from "@/lib/slug";
 import { resizeImage } from "@/lib/image";
 
@@ -38,6 +39,7 @@ function TourEditor() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { ensureSeeded(); setAllSpots(getAllSpots()); }, []);
+  useCloudRefresh(() => setAllSpots(getAllSpots()));
 
   useEffect(() => {
     if (!editCode) return;
