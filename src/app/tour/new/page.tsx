@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { ScenicSpot, Tour, TourDay, Departure } from "@/lib/types";
 import { getAllSpots, addTour, getTour, updateTour, ensureSeeded } from "@/lib/store";
-import { useCloudRefresh } from "@/lib/cloud";
+import { useCloudRefresh, uploadImageCloud } from "@/lib/cloud";
 import { slugify } from "@/lib/slug";
 import { resizeImage } from "@/lib/image";
 
@@ -96,7 +96,8 @@ function TourEditor() {
     const f = e.target.files?.[0];
     if (!f) return;
     setBusy(true);
-    try { setCover(await resizeImage(f)); } finally { setBusy(false); }
+    // Resize roi tai len Supabase Storage — chi luu duong link (fallback: dataURL)
+    try { setCover(await uploadImageCloud(await resizeImage(f), "covers")); } finally { setBusy(false); }
   }
 
   const canSave = titleVn.trim().length > 0;

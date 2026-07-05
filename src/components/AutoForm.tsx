@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { resizeImage } from "@/lib/image";
+import { uploadImageCloud } from "@/lib/cloud";
 import type { FieldDef, FormData } from "@/lib/schema";
 
 export default function AutoForm({
@@ -33,7 +34,8 @@ export default function AutoForm({
     const f = e.target.files?.[0];
     if (!f) return;
     setBusy(true);
-    try { set(key, await resizeImage(f)); } finally { setBusy(false); }
+    // Resize roi tai len Supabase Storage — chi luu duong link (fallback: dataURL)
+    try { set(key, await uploadImageCloud(await resizeImage(f), "spots")); } finally { setBusy(false); }
   }
 
   const canSave = schema.filter((f) => f.required).every((f) => (data[f.key] || "").toString().trim().length > 0);

@@ -70,6 +70,7 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **`store.ts`:** add/update/delete của spot/tour/quote-request tự push cloud (riêng `addQuoteRequest` chỉ lưu local — form khách `QuoteRequestForm` tự `await pushRequestCloud` để báo lỗi trung thực khi gửi thất bại).
 - **`CloudSync`** (mount trong `layout.tsx`): ensureSeeded + pullAll khi mở web. Trang `/requests` có nút "⟳ Làm mới" gọi lại pullAll.
 - Chưa đồng bộ: `quotes` (báo giá admin lưu) + `customers` (CRM) — vẫn localStorage.
+- **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
 ## CẬP NHẬT 16/06 — Báo giá dựa trên hành trình
 - `/quotes/new` GIỜ chọn **hành trình đã tạo** (không còn chọn 2 tour seed). Có **ô điền giá** NL/trẻ 2–11/dưới 2 (giá NL prefill từ `itinerary.price`, sửa được) + ngày khởi hành + số khách → tổng.

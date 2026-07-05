@@ -42,7 +42,8 @@ export default function QuoteRequestForm({
       id: slugify(name) + "-" + Date.now().toString(36),
       tourCode,
       tourName,
-      cover,
+      // Khong nhung anh base64 vao yeu cau (nang); chi giu khi la duong link
+      cover: cover && !cover.startsWith("data:") ? cover : undefined,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim() || undefined,

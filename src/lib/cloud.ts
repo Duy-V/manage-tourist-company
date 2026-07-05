@@ -81,6 +81,69 @@ export function deleteRequestCloud(id: string) {
     .then(({ error }) => { if (error) warn("xoa yeu cau bao gia", error); });
 }
 
+// ---------- Anh: luu file vao Storage, chi giu duong link ----------
+/**
+ * Nhan dataURL (base64 tu resizeImage) -> tai len bucket "images",
+ * tra ve URL public. Chua cau hinh Supabase / loi mang -> tra lai dataURL
+ * (app van chay, anh nam trong localStorage nhu cu).
+ */
+export async function uploadImageCloud(dataUrl: string, folder: string): Promise<string> {
+  if (!supabase || !dataUrl.startsWith("data:")) return dataUrl;
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const path = `${folder}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const { error } = await supabase.storage
+      .from("images")
+      .upload(path, blob, { contentType: blob.type || "image/jpeg" });
+    if (error) {
+      warn("tai anh len Storage", error);
+      return dataUrl;
+    }
+    return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
+  } catch (e) {
+    warn("tai anh len Storage", e);
+    return dataUrl;
+  }
+}
+
+/**
+ * Don dep 1 lan: anh base64 con sot trong canh diem/tour (tao truoc khi co
+ * Storage) se duoc tai len bucket va thay bang link. Goi sau pullAllFromCloud.
+ */
+export async function migrateDataUrlImages(): Promise<void> {
+  if (!supabase || typeof window === "undefined") return;
+
+  const spots = readLocal<ScenicSpot>(SPOT_KEY);
+  let spotChanged = false;
+  for (const s of spots) {
+    if (s.image?.startsWith("data:")) {
+      const url = await uploadImageCloud(s.image, "spots");
+      if (!url.startsWith("data:")) {
+        s.image = url;
+        spotChanged = true;
+        pushSpotCloud(s);
+      }
+    }
+  }
+  if (spotChanged) writeLocal(SPOT_KEY, spots);
+
+  const tours = readLocal<Tour>(TOUR_KEY);
+  let tourChanged = false;
+  for (const t of tours) {
+    if (t.cover?.startsWith("data:")) {
+      const url = await uploadImageCloud(t.cover, "covers");
+      if (!url.startsWith("data:")) {
+        t.cover = url;
+        tourChanged = true;
+        pushTourCloud(t);
+      }
+    }
+  }
+  if (tourChanged) writeLocal(TOUR_KEY, tours);
+
+  if (spotChanged || tourChanged) window.dispatchEvent(new Event(SYNC_EVENT));
+}
+
 // ---------- Keo toan bo du lieu cloud -> localStorage ----------
 /**
  * Goi khi mo web (CloudSync) hoac khi bam "Lam moi".
