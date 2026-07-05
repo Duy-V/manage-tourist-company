@@ -73,6 +73,11 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 06/07 — Dropdown tour trong form yêu cầu + gửi giá qua email
+- `QuoteRequestForm`: có **dropdown chọn tour** (mặc định = tour của trang, đổi được) + hiện giá tham khảo thấp nhất.
+- `src/lib/emailQuote.ts`: tính giá từ `tour.departures` (ưu tiên đúng tháng khách muốn đi, không khớp thì lấy rẻ nhất) → soạn email báo giá song đầy đủ (đơn giá × số khách, tổng). Gửi qua **EmailJS REST** khi có `NEXT_PUBLIC_EMAILJS_*` trong .env.local; chưa có thì fallback `mailto:` mở ứng dụng email của admin.
+- `/requests`: nút **"✉ Gửi giá qua email"** trên từng thẻ (disable khi khách không để email); gửi thành công → tự chuyển trạng thái "Đã liên hệ" + lưu `emailedAt` (hiện "Đã gửi giá lúc…").
+
 ## CẬP NHẬT 16/06 — Báo giá dựa trên hành trình
 - `/quotes/new` GIỜ chọn **hành trình đã tạo** (không còn chọn 2 tour seed). Có **ô điền giá** NL/trẻ 2–11/dưới 2 (giá NL prefill từ `itinerary.price`, sửa được) + ngày khởi hành + số khách → tổng.
 - `SavedQuote` (store.ts) đổi sang: `itineraryId, itineraryName, days, spotsCount, cover, customer..., departureDate, adult/child/infantPrice, total`.

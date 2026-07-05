@@ -166,6 +166,7 @@ export interface QuoteRequest {
   infants: number;       // dưới 2 tuổi
   note?: string;
   status: QuoteRequestStatus;
+  emailedAt?: number;    // thoi diem da gui bao gia qua email (neu co)
   createdAt: number;
 }
 

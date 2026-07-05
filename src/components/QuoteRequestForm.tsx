@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { addQuoteRequest, type QuoteRequest } from "@/lib/store";
-import { pushRequestCloud } from "@/lib/cloud";
+import { useEffect, useState } from "react";
+import { addQuoteRequest, getTours, type QuoteRequest } from "@/lib/store";
+import { pushRequestCloud, useCloudRefresh } from "@/lib/cloud";
 import { slugify } from "@/lib/slug";
+import { cny } from "@/lib/format";
+import type { Tour } from "@/lib/types";
 
 const inputCls =
   "mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15";
@@ -18,6 +20,8 @@ export default function QuoteRequestForm({
   tourName: string;
   cover?: string;
 }) {
+  const [tours, setTours] = useState<Tour[]>([]);
+  const [selCode, setSelCode] = useState(tourCode); // tour khach chon trong dropdown
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -30,6 +34,17 @@ export default function QuoteRequestForm({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => { setTours(getTours()); }, []);
+  useCloudRefresh(() => setTours(getTours()));
+
+  // Tour dang chon (fallback ve tour cua trang khi danh sach chua nap xong)
+  const selTour = tours.find((t) => t.code === selCode);
+  const selName = selTour?.title_vn ?? tourName;
+  const selCover = selTour ? selTour.cover : cover;
+  const minPrice = selTour && selTour.departures.length > 0
+    ? Math.min(...selTour.departures.map((d) => d.adult))
+    : 0;
+
   const canSubmit = name.trim().length > 0 && phone.trim().length > 0 && adults + children + infants > 0;
 
   async function submit() {
@@ -40,10 +55,10 @@ export default function QuoteRequestForm({
     setError("");
     const req: QuoteRequest = {
       id: slugify(name) + "-" + Date.now().toString(36),
-      tourCode,
-      tourName,
+      tourCode: selCode,
+      tourName: selName,
       // Khong nhung anh base64 vao yeu cau (nang); chi giu khi la duong link
-      cover: cover && !cover.startsWith("data:") ? cover : undefined,
+      cover: selCover && !selCover.startsWith("data:") ? selCover : undefined,
       name: name.trim(),
       phone: phone.trim(),
       email: email.trim() || undefined,
@@ -72,7 +87,8 @@ export default function QuoteRequestForm({
         <div className="text-3xl">✅</div>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">Đã gửi yêu cầu báo giá!</h2>
         <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Cảm ơn <b>{name}</b>. Chúng tôi sẽ liên hệ qua số <b>{phone}</b> trong thời gian sớm nhất.
+          Cảm ơn <b>{name}</b>. Chúng tôi sẽ gửi báo giá <b>{selName}</b> và liên hệ qua số <b>{phone}</b>
+          {email.trim() ? <> hoặc email <b>{email.trim()}</b></> : null} trong thời gian sớm nhất.
         </p>
         <button
           onClick={() => { setSent(false); setName(""); setPhone(""); setEmail(""); setNote(""); }}
@@ -86,12 +102,32 @@ export default function QuoteRequestForm({
 
   return (
     <section id="yeu-cau-bao-gia" className="mt-10 rounded-2xl border bg-white p-6 sm:p-8">
-      <h2 className="text-xl font-semibold tracking-tight">Nhận báo giá tour này</h2>
+      <h2 className="text-xl font-semibold tracking-tight">Nhận báo giá tour</h2>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Để lại thông tin, chúng tôi sẽ gửi báo giá chi tiết cho <b>{tourName}</b>.
+        Chọn tour bạn quan tâm và để lại thông tin, chúng tôi sẽ gửi báo giá chi tiết.
       </p>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <label className="mt-5 block">
+        <span className={labelCls}>Tour quan tâm *</span>
+        <select value={selCode} onChange={(e) => setSelCode(e.target.value)} className={inputCls}>
+          {tours.length === 0 ? (
+            <option value={tourCode}>{tourName}</option>
+          ) : (
+            tours.map((t) => (
+              <option key={t.code} value={t.code}>
+                {t.title_vn} · {t.days}N{t.nights}Đ
+              </option>
+            ))
+          )}
+        </select>
+        {minPrice > 0 && (
+          <span className="mt-1 block text-xs text-[var(--text-muted)]">
+            Giá tham khảo từ <b className="text-[var(--text)]">{cny(minPrice)}</b>/khách
+          </span>
+        )}
+      </label>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className={labelCls}>Họ tên *</span>
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Nguyễn Văn A" />
