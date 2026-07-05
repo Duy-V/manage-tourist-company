@@ -17,9 +17,18 @@ function SpotFormPage() {
   const [initial, setInitial] = useState<FormData | null>(editing ? null : {});
   const [dupSpot, setDupSpot] = useState<{ slug: string; name: string; city: string } | null>(null);
 
+  // Doi che do tao <-> sua ngay tren cung trang (vd: bam "Sua the co san" trong
+  // canh bao trung ten): reset form ve "Dang tai..." NGAY trong luot render nay
+  // de AutoForm unmount, roi effect ben duoi nap dung du lieu the can sua.
+  const [lastEditSlug, setLastEditSlug] = useState<string | null>(editSlug);
+  if (lastEditSlug !== editSlug) {
+    setLastEditSlug(editSlug);
+    setInitial(editSlug ? null : {});
+    setDupSpot(null);
+  }
+
   useEffect(() => {
     ensureSeeded();
-    setDupSpot(null); // doi che do tao/sua thi an canh bao trung ten
     if (!editSlug) return;
     const s = getUserSpot(editSlug);
     setInitial(s
