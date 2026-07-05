@@ -7,6 +7,7 @@ import { spotImage } from "@/lib/data";
 import type { Tour, ScenicSpot } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { useRole } from "@/lib/useRole";
+import QuoteRequestForm from "@/components/QuoteRequestForm";
 
 export default function TourDetailClient({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -59,16 +60,21 @@ export default function TourDetailClient({ params }: { params: Promise<{ code: s
           {tour.departures.length > 0 && (
             <span className="text-[var(--text-muted)]">Từ <b className="text-[var(--text)]">{cny(Math.min(...tour.departures.map((d) => d.adult)))}</b>/khách</span>
           )}
-          {isAdmin && (
-            <div className="ml-auto flex gap-2">
-              <Link href={`/tour/new?edit=${encodeURIComponent(tour.code)}`} className="rounded-lg border px-4 py-1.5 font-medium hover:bg-white">
-                ✎ Sửa tour
-              </Link>
-              <Link href={`/quotes/new?itinerary=${encodeURIComponent(tour.code)}`} className="rounded-lg bg-[var(--text)] px-4 py-1.5 font-medium text-white hover:opacity-90">
-                Tạo báo giá
-              </Link>
-            </div>
-          )}
+          <div className="ml-auto flex gap-2">
+            {isAdmin && (
+              <>
+                <Link href={`/tour/new?edit=${encodeURIComponent(tour.code)}`} className="rounded-lg border px-4 py-1.5 font-medium hover:bg-white">
+                  ✎ Sửa tour
+                </Link>
+                <Link href={`/quotes/new?itinerary=${encodeURIComponent(tour.code)}`} className="rounded-lg bg-[var(--text)] px-4 py-1.5 font-medium text-white hover:opacity-90">
+                  Tạo báo giá
+                </Link>
+              </>
+            )}
+            <a href="#yeu-cau-bao-gia" className="rounded-lg bg-[var(--accent)] px-4 py-1.5 font-medium text-white hover:opacity-90">
+              Nhận báo giá
+            </a>
+          </div>
         </div>
       </div>
 
@@ -153,6 +159,8 @@ export default function TourDetailClient({ params }: { params: Promise<{ code: s
         </div>
       )}
       {tour.hotels_note && <p className="mt-4 text-xs text-[var(--text-muted)]">Khách sạn tham khảo: {tour.hotels_note}</p>}
+
+      <QuoteRequestForm tourCode={tour.code} tourName={tour.title_vn} cover={tour.cover} />
     </main>
   );
 }

@@ -128,6 +128,48 @@ export function updateQuote(id: string, patch: Partial<SavedQuote>) {
   write(QUOTE_KEY, getQuotes().map((q) => (q.id === id ? { ...q, ...patch, id } : q)));
 }
 
+// ----- Yeu cau bao gia (khach gui tu trang tour) -----
+export type QuoteRequestStatus = "new" | "contacted" | "done";
+export interface QuoteRequest {
+  id: string;
+  tourCode: string;
+  tourName: string;
+  cover?: string;
+  name: string;          // tên khách
+  phone: string;         // số điện thoại (bắt buộc để liên hệ lại)
+  email?: string;
+  departureDate?: string; // dd/mm/yyyy hoặc mô tả tự do
+  adults: number;
+  children: number;      // 2–11 tuổi
+  infants: number;       // dưới 2 tuổi
+  note?: string;
+  status: QuoteRequestStatus;
+  createdAt: number;
+}
+
+const REQUEST_KEY = "tq_quote_requests";
+
+export function getQuoteRequests(): QuoteRequest[] {
+  return read<QuoteRequest[]>(REQUEST_KEY, []);
+}
+export function getQuoteRequest(id: string): QuoteRequest | undefined {
+  return getQuoteRequests().find((r) => r.id === id);
+}
+export function addQuoteRequest(r: QuoteRequest) {
+  const arr = getQuoteRequests();
+  arr.push(r);
+  write(REQUEST_KEY, arr);
+}
+export function updateQuoteRequest(id: string, patch: Partial<QuoteRequest>) {
+  write(REQUEST_KEY, getQuoteRequests().map((r) => (r.id === id ? { ...r, ...patch, id } : r)));
+}
+export function deleteQuoteRequest(id: string) {
+  write(REQUEST_KEY, getQuoteRequests().filter((r) => r.id !== id));
+}
+export function countNewQuoteRequests(): number {
+  return getQuoteRequests().filter((r) => r.status === "new").length;
+}
+
 // ----- Khach hang (CRM) -----
 export interface ProgressEntry {
   id: string;

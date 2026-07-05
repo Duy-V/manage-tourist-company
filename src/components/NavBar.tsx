@@ -9,6 +9,7 @@ const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
   { href: "/tours", label: "Tour" },
   { href: "/dashboard", label: "Cảnh điểm" },
   { href: "/quotes", label: "Báo giá" },
+  { href: "/requests", label: "Yêu cầu", adminOnly: true },
   { href: "/customers", label: "Khách hàng", adminOnly: true },
 ];
 
