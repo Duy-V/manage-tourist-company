@@ -6,12 +6,13 @@
 import { useEffect } from "react";
 import { supabase } from "./supabase";
 import type { ScenicSpot, Tour } from "./types";
-import type { QuoteRequest } from "./store";
+import type { QuoteRequest, Customer } from "./store";
 
 // Phai khop key trong store.ts (khong import tu store de tranh vong lap module)
 const SPOT_KEY = "tq_spots";
 const TOUR_KEY = "tq_tours";
 const REQUEST_KEY = "tq_quote_requests";
+const CUSTOMER_KEY = "tq_customers";
 
 const SYNC_EVENT = "tq:cloud";
 
@@ -79,6 +80,27 @@ export function deleteRequestCloud(id: string) {
   if (!supabase) return;
   void supabase.from("quote_requests").delete().eq("id", id)
     .then(({ error }) => { if (error) warn("xoa yeu cau bao gia", error); });
+}
+
+function customerRow(c: Customer) {
+  return {
+    id: c.id,
+    company: c.company,
+    contact_name: c.contactName,
+    contact_phone: c.contactPhone,
+    data: c,
+    updated_at: new Date().toISOString(),
+  };
+}
+export function pushCustomerCloud(c: Customer) {
+  if (!supabase) return;
+  void supabase.from("app_customers").upsert(customerRow(c))
+    .then(({ error }) => { if (error) warn("luu khach hang", error); });
+}
+export function deleteCustomerCloud(id: string) {
+  if (!supabase) return;
+  void supabase.from("app_customers").delete().eq("id", id)
+    .then(({ error }) => { if (error) warn("xoa khach hang", error); });
 }
 
 // ---------- Anh: luu file vao Storage, chi giu duong link ----------
@@ -154,10 +176,11 @@ export async function migrateDataUrlImages(): Promise<void> {
 export async function pullAllFromCloud(): Promise<void> {
   if (!supabase || typeof window === "undefined") return;
   try {
-    const [sp, tr, rq] = await Promise.all([
+    const [sp, tr, rq, cs] = await Promise.all([
       supabase.from("app_spots").select("data"),
       supabase.from("app_tours").select("data"),
       supabase.from("quote_requests").select("data"),
+      supabase.from("app_customers").select("data"),
     ]);
 
     if (sp.error) warn("doc canh diem", sp.error);
@@ -195,6 +218,18 @@ export async function pullAllFromCloud(): Promise<void> {
         if (error) warn("day yeu cau len cloud", error);
       } else {
         writeLocal(REQUEST_KEY, cloud);
+      }
+    }
+
+    if (cs.error) warn("doc khach hang", cs.error);
+    else {
+      const cloud = cs.data.map((row) => row.data as Customer);
+      const local = readLocal<Customer>(CUSTOMER_KEY);
+      if (cloud.length === 0 && local.length > 0) {
+        const { error } = await supabase.from("app_customers").upsert(local.map(customerRow));
+        if (error) warn("day khach hang len cloud", error);
+      } else {
+        writeLocal(CUSTOMER_KEY, cloud);
       }
     }
 

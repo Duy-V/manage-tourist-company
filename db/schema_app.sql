@@ -38,6 +38,18 @@ create table if not exists quote_requests (
   created_at timestamptz default now()
 );
 
+-- 4) KHACH HANG CRM (Customer — admin theo doi cong ty, lien he,
+--    tien do lam viec theo tuan). Cot phang de xem nhanh; du lieu
+--    day du (ca mang progress) nam trong `data`.
+create table if not exists app_customers (
+  id text primary key,
+  company text,
+  contact_name text,
+  contact_phone text,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+
 -- RLS ---------------------------------------------------------
 -- App chua co dang nhap that (admin/admin123 chi o client) nen tam thoi
 -- cho anon key doc/ghi tat ca. Khi nang cap Supabase Auth thi siet lai:
@@ -45,6 +57,7 @@ create table if not exists quote_requests (
 alter table app_spots enable row level security;
 alter table app_tours enable row level security;
 alter table quote_requests enable row level security;
+alter table app_customers enable row level security;
 
 drop policy if exists "anon all app_spots" on app_spots;
 create policy "anon all app_spots" on app_spots
@@ -56,4 +69,8 @@ create policy "anon all app_tours" on app_tours
 
 drop policy if exists "anon all quote_requests" on quote_requests;
 create policy "anon all quote_requests" on quote_requests
+  for all using (true) with check (true);
+
+drop policy if exists "anon all app_customers" on app_customers;
+create policy "anon all app_customers" on app_customers
   for all using (true) with check (true);

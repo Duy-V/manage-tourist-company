@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getCustomers, deleteCustomer, type Customer } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import { useRole } from "@/lib/useRole";
 import { matches } from "@/lib/search";
 import SearchBox from "@/components/SearchBox";
@@ -18,6 +19,7 @@ export default function CustomersPage() {
     setItems(getCustomers().sort((a, b) => b.createdAt - a.createdAt));
   }
   useEffect(() => { refresh(); }, []);
+  useCloudRefresh(refresh);
 
   function fields(c: Customer): Array<string | undefined> {
     return [c.company, c.contactName, c.contactPhone, c.email, c.address, c.taxCode, c.legalRep,

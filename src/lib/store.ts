@@ -7,6 +7,8 @@ import {
   deleteTourCloud,
   pushRequestCloud,
   deleteRequestCloud,
+  pushCustomerCloud,
+  deleteCustomerCloud,
 } from "./cloud";
 
 export interface ItineraryDay {
@@ -220,12 +222,17 @@ export function addCustomer(c: Customer) {
   const arr = getCustomers();
   arr.push(c);
   write(CUSTOMER_KEY, arr);
+  pushCustomerCloud(c);
 }
 export function updateCustomer(id: string, patch: Partial<Customer>) {
-  write(CUSTOMER_KEY, getCustomers().map((c) => (c.id === id ? { ...c, ...patch, id } : c)));
+  const arr = getCustomers().map((c) => (c.id === id ? { ...c, ...patch, id } : c));
+  write(CUSTOMER_KEY, arr);
+  const updated = arr.find((c) => c.id === id);
+  if (updated) pushCustomerCloud(updated);
 }
 export function deleteCustomer(id: string) {
   write(CUSTOMER_KEY, getCustomers().filter((c) => c.id !== id));
+  deleteCustomerCloud(id);
 }
 
 // ----- Tour (truoc day la du lieu tinh trong data.ts, nay sua/xoa duoc) -----

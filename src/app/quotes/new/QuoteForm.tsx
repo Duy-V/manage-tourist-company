@@ -132,11 +132,12 @@ function Form() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Sau khi dong bo cloud xong thi doc lai danh sach chuong trinh/canh diem
+  // Sau khi dong bo cloud xong thi doc lai danh sach chuong trinh/canh diem/khach hang
   // (giu nguyen lua chon va gia dang dien do)
   useCloudRefresh(() => {
     setPrograms(getTours().map(tourToProgram));
     setMap(spotMap());
+    setCustomers(getCustomers().sort((a, b) => a.company.localeCompare(b.company)));
   });
 
   const program = useMemo(() => programs.find((x) => x.code === code), [programs, code]);
