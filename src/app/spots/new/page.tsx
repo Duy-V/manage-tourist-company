@@ -6,8 +6,16 @@ import Link from "next/link";
 import AutoForm from "@/components/AutoForm";
 import { spotSchema } from "@/lib/schemas";
 import { addSpot, getUserSpot, updateSpot, getAllSpots, ensureSeeded } from "@/lib/store";
+import { useCloudRefresh } from "@/lib/cloud";
 import { slugify, slugBase } from "@/lib/slug";
 import type { FormData } from "@/lib/schema";
+
+function loadSpotForm(slug: string): FormData {
+  const s = getUserSpot(slug);
+  return s
+    ? { name_vn: s.name_vn, name_cn: s.name_cn, city: s.city === "Khác" ? "" : s.city, description: s.description, image: s.image }
+    : {};
+}
 
 function SpotFormPage() {
   const router = useRouter();
@@ -16,6 +24,7 @@ function SpotFormPage() {
   const editing = Boolean(editSlug);
   const [initial, setInitial] = useState<FormData | null>(editing ? null : {});
   const [dupSpot, setDupSpot] = useState<{ slug: string; name: string; city: string } | null>(null);
+  const [formVersion, setFormVersion] = useState(0); // tang de remount AutoForm khi du lieu moi ve tu cloud
 
   // Doi che do tao <-> sua ngay tren cung trang (vd: bam "Sua the co san" trong
   // canh bao trung ten): reset form ve "Dang tai..." NGAY trong luot render nay
@@ -30,11 +39,20 @@ function SpotFormPage() {
   useEffect(() => {
     ensureSeeded();
     if (!editSlug) return;
-    const s = getUserSpot(editSlug);
-    setInitial(s
-      ? { name_vn: s.name_vn, name_cn: s.name_cn, city: s.city === "Khác" ? "" : s.city, description: s.description, image: s.image }
-      : {});
+    setInitial(loadSpotForm(editSlug));
   }, [editSlug]);
+
+  // Form co the khoi tao TRUOC khi dong bo cloud xong (cache chua co anh/du
+  // lieu moi nhat). Khi dong bo xong: neu du lieu the dang sua khac voi form
+  // thi nap lai va remount AutoForm de hien du (vd: anh cua the).
+  useCloudRefresh(() => {
+    if (!editSlug) return;
+    const fresh = loadSpotForm(editSlug);
+    if (JSON.stringify(fresh) !== JSON.stringify(initial)) {
+      setInitial(fresh);
+      setFormVersion((v) => v + 1);
+    }
+  });
 
   function onSubmit(d: FormData) {
     const data = {
@@ -81,7 +99,7 @@ function SpotFormPage() {
         </div>
       )}
       <AutoForm
-        key={editSlug || "new"}
+        key={`${editSlug || "new"}-${formVersion}`}
         schema={spotSchema}
         initial={initial}
         onSubmit={onSubmit}
