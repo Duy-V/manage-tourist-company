@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import AuthControl from "./AuthControl";
 import { useRole } from "@/lib/useRole";
 import { useUser, displayNameOf } from "@/lib/useUser";
 
@@ -43,10 +42,9 @@ export default function NavBar() {
             </Link>
           ))}
           <Link href="/account"
-            className="rounded-md px-3 py-1.5 text-[var(--text-muted)] transition hover:bg-[var(--muted)] hover:text-[var(--text)]">
+            className="ml-2 rounded-md border-l px-3 py-1.5 pl-4 text-[var(--text-muted)] transition hover:bg-[var(--muted)] hover:text-[var(--text)]">
             {accountLabel}
           </Link>
-          <div className="ml-2 border-l pl-2"><AuthControl /></div>
         </nav>
 
         {/* Mobile hamburger */}
@@ -79,7 +77,6 @@ export default function NavBar() {
               {accountLabel}
             </Link>
           </nav>
-          <div className="mt-3 border-t pt-3"><AuthControl /></div>
         </div>
       )}
     </header>
