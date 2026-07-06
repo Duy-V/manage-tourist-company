@@ -9,6 +9,7 @@ import type { Tour, ScenicSpot } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { useRole } from "@/lib/useRole";
 import QuoteRequestForm from "@/components/QuoteRequestForm";
+import TourReviews from "@/components/TourReviews";
 
 export default function TourDetailClient({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -166,6 +167,8 @@ export default function TourDetailClient({ params }: { params: Promise<{ code: s
       {tour.hotels_note && <p className="mt-4 text-xs text-[var(--text-muted)]">Khách sạn tham khảo: {tour.hotels_note}</p>}
 
       <QuoteRequestForm tourCode={tour.code} tourName={tour.title_vn} cover={tour.cover} />
+
+      <TourReviews tourCode={tour.code} />
     </main>
   );
 }

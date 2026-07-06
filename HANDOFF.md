@@ -73,6 +73,12 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 06/07 (2) — Tài khoản người dùng thật + đánh giá tour
+- **Supabase Auth** (`db/schema_users.sql`): đăng ký email + mật khẩu → Supabase gửi email xác thực → bấm link mới đăng nhập được. Bảng `profiles` (trigger tự tạo dòng khi đăng ký) + bảng `reviews` (RLS thật: ai cũng đọc, chỉ chủ tài khoản viết/sửa/xóa đánh giá của mình).
+- Cần cấu hình 1 lần: Authentication > URL Configuration (Site URL = https://ghiendi.vercel.app; Redirect thêm http://localhost:3000/account + https://ghiendi.vercel.app/account). SMTP mặc định giới hạn ~2-4 email/giờ.
+- Code: `src/lib/useUser.ts` (hook user + displayNameOf), `/account` (đăng nhập/đăng ký/đăng xuất, lỗi dịch tiếng Việt), `TourReviews.tsx` (sao + nhận xét, điểm TB, xóa của mình) gắn cuối trang `/tours/[code]`, NavBar có link "Đăng nhập"/tên user.
+- Auth user này ĐỘC LẬP với login admin demo (tq_role) — admin vẫn admin/admin123.
+
 ## CẬP NHẬT 06/07 — Dropdown tour trong form yêu cầu + gửi giá qua email
 - `QuoteRequestForm`: có **dropdown chọn tour** (mặc định = tour của trang, đổi được) + hiện giá tham khảo thấp nhất.
 - `src/lib/emailQuote.ts`: tính giá từ `tour.departures` (ưu tiên đúng tháng khách muốn đi, không khớp thì lấy rẻ nhất) → soạn email báo giá song đầy đủ (đơn giá × số khách, tổng). Gửi qua **EmailJS REST** khi có `NEXT_PUBLIC_EMAILJS_*` trong .env.local; chưa có thì fallback `mailto:` mở ứng dụng email của admin.
