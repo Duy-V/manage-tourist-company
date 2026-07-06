@@ -102,10 +102,15 @@ export async function sendQuoteEmail(r: QuoteRequest, tour: Tour | undefined): P
         service_id: SERVICE_ID,
         template_id: TEMPLATE_ID,
         user_id: PUBLIC_KEY,
+        // Gui kem ca 2 bo ten bien de khop moi kieu template
+        // ({{to_email}}/{{email}}, {{to_name}}/{{name}}, {{subject}}/{{title}})
         template_params: {
           to_email: r.email,
+          email: r.email,
           to_name: r.name,
+          name: r.name,
           subject,
+          title: subject,
           message: body,
         },
       }),
