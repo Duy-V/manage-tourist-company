@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import AuthControl from "./AuthControl";
 import { useRole } from "@/lib/useRole";
+import { useUser, displayNameOf } from "@/lib/useUser";
 
 const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
   { href: "/tours", label: "Tour" },
@@ -16,7 +17,9 @@ const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
 export default function NavBar() {
   const [open, setOpen] = useState(false);
   const isAdmin = useRole() === "admin";
+  const { user } = useUser();
   const nav = NAV.filter((n) => !n.adminOnly || isAdmin);
+  const accountLabel = user ? `👤 ${displayNameOf(user)}` : "Đăng nhập";
 
   // Bao cho ContactFab biet menu mobile dang mo de an no di
   useEffect(() => {
@@ -39,6 +42,10 @@ export default function NavBar() {
               {n.label}
             </Link>
           ))}
+          <Link href="/account"
+            className="rounded-md px-3 py-1.5 text-[var(--text-muted)] transition hover:bg-[var(--muted)] hover:text-[var(--text)]">
+            {accountLabel}
+          </Link>
           <div className="ml-2 border-l pl-2"><AuthControl /></div>
         </nav>
 
@@ -67,6 +74,10 @@ export default function NavBar() {
                 {n.label}
               </Link>
             ))}
+            <Link href="/account" onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 text-[var(--text)] hover:bg-[var(--muted)]">
+              {accountLabel}
+            </Link>
           </nav>
           <div className="mt-3 border-t pt-3"><AuthControl /></div>
         </div>
