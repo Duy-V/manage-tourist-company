@@ -1,7 +1,7 @@
 "use client";
 
-// Tai khoan nguoi dung THAT (Supabase Auth) — khac voi login admin demo
-// (tq_role). Dang ky bang email + mat khau, Supabase gui email xac thuc,
+// Tai khoan nguoi dung THAT (Supabase Auth) — admin va user dung chung.
+// Dang ky bang email + mat khau, Supabase gui email xac thuc,
 // bam link xong moi dang nhap duoc. Phien dang nhap luu trong localStorage
 // va tu phat hien khi quay ve tu link xac thuc (detectSessionInUrl).
 

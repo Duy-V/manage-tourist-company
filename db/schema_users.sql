@@ -17,21 +17,31 @@
 -- ============================================================
 
 -- 1) HO SO NGUOI DUNG (tu dong tao 1 dong moi khi co nguoi dang ky)
+--    role: 'user' (mac dinh) | 'admin' — admin va user DUNG CHUNG form
+--    dang nhap; quyen quan tri quyet dinh boi cot nay.
 create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   display_name text,
+  role text not null default 'user' check (role in ('user', 'admin')),
   created_at timestamptz default now()
 );
+
+-- Da lo chay ban cu (chua co cot role)? Dong nay bo sung, chay lai an toan.
+alter table profiles add column if not exists role text not null default 'user';
 
 alter table profiles enable row level security;
 
 drop policy if exists "read profiles" on profiles;
 create policy "read profiles" on profiles for select using (true);
 
+-- KHONG cho client tu sua profile (tranh tu nang role len admin).
+-- Sua role chi lam trong Dashboard (Table Editor / SQL Editor — bo qua RLS).
 drop policy if exists "update own profile" on profiles;
-create policy "update own profile" on profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- >>> PHONG ADMIN CHO CHINH BAN: sau khi dang ky + xac thuc email xong,
+-- bo comment dong duoi (xoa 2 dau gach) roi Run de len quyen admin:
+-- update profiles set role = 'admin' where email = 'duongvo0905@gmail.com';
 
 -- Trigger: dang ky xong -> tu them vao profiles
 create or replace function public.handle_new_user()
