@@ -73,6 +73,12 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 07/07 — Phân quyền bằng cột role (BỎ HẲN login demo admin/admin123)
+- Admin và user **dùng chung form** `/account` (Supabase Auth). Quyền lấy từ cột `role` trong `profiles`: `'admin'` | `'user'` (mặc định). Cấp admin = sửa role trong Dashboard/SQL (client KHÔNG có policy update profiles → không tự nâng quyền được).
+- `src/lib/useRole.ts` viết lại: đọc role từ profiles theo user đang đăng nhập (có cache theo uid); trả `"admin" | "user" | "viewer"`. Mọi trang check `useRole() === "admin"` giữ nguyên.
+- ĐÃ XÓA: `src/lib/auth.ts` (login/logout demo, key tq_role) + AdminSection ở /account. Trang /account hiện badge "● Quản trị viên" / "Người dùng".
+- ⚠ Để có admin đầu tiên: đăng ký + xác thực email → chạy `update profiles set role='admin' where email='...'` (dòng mẫu có sẵn cuối phần 1 trong `db/schema_users.sql`).
+
 ## CẬP NHẬT 06/07 (2) — Tài khoản người dùng thật + đánh giá tour
 - **Supabase Auth** (`db/schema_users.sql`): đăng ký email + mật khẩu → Supabase gửi email xác thực → bấm link mới đăng nhập được. Bảng `profiles` (trigger tự tạo dòng khi đăng ký) + bảng `reviews` (RLS thật: ai cũng đọc, chỉ chủ tài khoản viết/sửa/xóa đánh giá của mình).
 - Cần cấu hình 1 lần: Authentication > URL Configuration (Site URL = https://ghiendi.vercel.app; Redirect thêm http://localhost:3000/account + https://ghiendi.vercel.app/account). SMTP mặc định giới hạn ~2-4 email/giờ.

@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useUser, displayNameOf } from "@/lib/useUser";
-import { login as adminLogin, logout as adminLogout } from "@/lib/auth";
 import { useRole } from "@/lib/useRole";
 
 const inputCls =
@@ -21,58 +20,9 @@ function viError(msg: string): string {
   return msg;
 }
 
-// Dang nhap quan tri (noi bo) — truoc day la nut rieng tren NavBar,
-// gop ve day de navbar chi con MOT nut dang nhap duy nhat.
-function AdminSection() {
-  const isAdmin = useRole() === "admin";
-  const [open, setOpen] = useState(false);
-  const [user, setUser] = useState("");
-  const [pass, setPass] = useState("");
-  const [err, setErr] = useState(false);
-
-  if (isAdmin) {
-    return (
-      <div className="mt-8 flex items-center justify-between rounded-xl border bg-white p-4 text-sm">
-        <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">● Chế độ quản trị</span>
-        <button onClick={adminLogout} className="text-[var(--text-muted)] hover:text-[var(--text)] hover:underline">
-          Thoát quản trị
-        </button>
-      </div>
-    );
-  }
-
-  function submit() {
-    if (adminLogin(user, pass)) { setOpen(false); setErr(false); setUser(""); setPass(""); }
-    else setErr(true);
-  }
-
-  return (
-    <div className="mt-8 text-center">
-      {!open ? (
-        <button onClick={() => setOpen(true)} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:underline">
-          Đăng nhập quản trị (nội bộ) →
-        </button>
-      ) : (
-        <div className="rounded-xl border bg-white p-4 text-left">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Đăng nhập quản trị</span>
-            <button onClick={() => setOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text)]">×</button>
-          </div>
-          <input value={user} autoFocus onChange={(e) => setUser(e.target.value)} placeholder="Tài khoản" className={inputCls} />
-          <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Mật khẩu"
-            onKeyDown={(e) => { if (e.key === "Enter") submit(); }} className={inputCls} />
-          {err && <p className="mt-2 text-xs text-rose-600">Sai tài khoản hoặc mật khẩu</p>}
-          <button onClick={submit} className="mt-3 w-full rounded-lg bg-[var(--text)] px-3 py-2 text-sm font-medium text-white hover:opacity-90">
-            Đăng nhập
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function AccountPage() {
   const { user, loading } = useUser();
+  const role = useRole();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -100,7 +50,14 @@ export default function AccountPage() {
           <div className="text-3xl">👤</div>
           <h1 className="mt-2 text-xl font-semibold tracking-tight">{displayNameOf(user)}</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">{user.email}</p>
-          <p className="mt-3 text-sm text-emerald-700">✓ Tài khoản đã xác thực</p>
+          <div className="mt-3 flex items-center justify-center gap-2 text-sm">
+            <span className="text-emerald-700">✓ Đã xác thực</span>
+            {role === "admin" ? (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">● Quản trị viên</span>
+            ) : (
+              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">Người dùng</span>
+            )}
+          </div>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/tours" className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">
               Xem tour & đánh giá
@@ -113,7 +70,6 @@ export default function AccountPage() {
             </button>
           </div>
         </div>
-        <AdminSection />
       </main>
     );
   }
@@ -196,8 +152,6 @@ export default function AccountPage() {
           {busy ? "Đang xử lý…" : tab === "register" ? "Đăng ký & gửi email xác thực" : "Đăng nhập"}
         </button>
       </div>
-
-      <AdminSection />
     </main>
   );
 }
