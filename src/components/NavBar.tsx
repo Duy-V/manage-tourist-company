@@ -8,6 +8,7 @@ import { useUser, displayNameOf } from "@/lib/useUser";
 const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
   { href: "/tours", label: "Tour" },
   { href: "/dashboard", label: "Cảnh điểm" },
+  { href: "/reviews", label: "Bình luận" },
   { href: "/quotes", label: "Báo giá" },
   { href: "/requests", label: "Yêu cầu", adminOnly: true },
   { href: "/customers", label: "Khách hàng", adminOnly: true },

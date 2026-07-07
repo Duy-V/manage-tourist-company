@@ -140,3 +140,40 @@ create policy "delete own review" on reviews
 drop policy if exists "admin delete reviews" on reviews;
 create policy "admin delete reviews" on reviews
   for delete using (public.is_admin());
+
+-- 3) BAI VIET CAM NHAN CANH DIEM (nguoi dung viet o trang /reviews)
+create table if not exists spot_posts (
+  id uuid primary key default gen_random_uuid(),
+  spot_slug text not null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  author_name text,
+  content text not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists spot_posts_spot_idx on spot_posts (spot_slug);
+
+alter table spot_posts enable row level security;
+
+drop policy if exists "read spot_posts" on spot_posts;
+create policy "read spot_posts" on spot_posts for select using (true);
+
+-- Chi tai khoan da dang nhap + khong bi tam ngung moi viet, duoi ten minh
+drop policy if exists "insert own spot_post" on spot_posts;
+create policy "insert own spot_post" on spot_posts
+  for insert with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and status = 'active')
+  );
+
+drop policy if exists "update own spot_post" on spot_posts;
+create policy "update own spot_post" on spot_posts
+  for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "delete own spot_post" on spot_posts;
+create policy "delete own spot_post" on spot_posts
+  for delete using (auth.uid() = user_id);
+
+drop policy if exists "admin delete spot_posts" on spot_posts;
+create policy "admin delete spot_posts" on spot_posts
+  for delete using (public.is_admin());

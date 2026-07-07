@@ -73,6 +73,10 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 07/07 (3) — Trang /reviews (bình luận tổng hợp) + cảm nhận cảnh điểm
+- `schema_users.sql` thêm bảng `spot_posts` (spot_slug, user_id, author_name, content) + RLS giống reviews (đọc công khai; chỉ user active viết; sửa/xóa của mình; admin xóa bất kỳ). **Phải chạy lại schema** để có bảng này.
+- `/reviews` (NavBar "Bình luận", công khai) 2 tab: "Đánh giá tour" (tổng hợp mọi review, link về tour, người viết/admin xóa được) + "Cảm nhận cảnh điểm" (form chọn cảnh điểm + viết cho user đã đăng nhập; danh sách bài kèm ảnh cảnh điểm). Đọc trực tiếp từ reviews/spot_posts; tên tour/cảnh điểm map từ getTours()/getAllSpots().
+
 ## CẬP NHẬT 07/07 (2) — Trang quản lý người dùng /users (admin)
 - `profiles` thêm cột `status` ('active'|'suspended') + hàm `public.is_admin()` (security definer, tránh đệ quy RLS). Policies mới: chỉ đọc profile CỦA MÌNH, admin đọc/sửa/xóa tất cả (không còn lộ email công khai); admin xóa được review bất kỳ; user bị tạm ngưng bị RLS chặn viết review.
 - `/users` (NavBar "Người dùng", adminOnly): danh sách tài khoản (tên, email, role, trạng thái, ngày tạo) + bình luận của từng người; nút Tạm ngưng/Mở lại, Cấp/Hạ quyền admin, Xóa tài khoản (= xóa profile + reviews; xóa hẳn login trong Dashboard > Authentication > Users), xóa từng bình luận (kiểm duyệt); thống kê tổng/mới 7 ngày/admin/tạm ngưng; không thao tác được lên chính mình.
