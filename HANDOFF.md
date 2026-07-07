@@ -73,6 +73,11 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 07/07 (5) — Mã tour tự sinh (quản lý tour bằng mã)
+- `slug.ts` thêm `makeTourCode(title, existingCodes, date?)`: chữ cái đầu các từ trong tên (bỏ dấu, bỏ từ bắt đầu bằng số, tối đa 6 chữ, uppercase) + ngày tạo DDMMYY. VD "THANH DAO" tạo 02/01/2026 → `TD020126`; trùng → `-2`, `-3`. Đã unit-test đúng ví dụ.
+- `/tour/new`: BỎ ô nhập mã tay — mã tự sinh, ô hiển thị read-only (preview theo tên gõ tới đâu sinh tới đó); sửa tour giữ mã cũ. `TourDetailClient` hiện chip mã ở thanh thông tin; thẻ tour + tìm kiếm theo mã có sẵn từ trước.
+- Tour cũ (TD-5N4D, TD-TN-5N…) giữ nguyên mã, không migrate.
+
 ## CẬP NHẬT 07/07 (4) — Nút "Soạn báo giá" (thay gửi email 1 chạm)
 - `/requests`: nút đổi thành **"✉ Soạn báo giá"** → mở `QuoteComposer.tsx` (modal): hiện chương trình tour khách yêu cầu, admin **thêm/bớt cảnh điểm từng ngày** (chip × + dropdown), **chỉnh 3 mức giá** (prefill từ bảng giá đúng tháng khách muốn đi), tổng tính lại trực tiếp → bấm "Gửi báo giá" email mới đi.
 - `emailQuote.ts`: thêm `ComposedQuote` — `buildQuoteEmail/sendQuoteEmail` nhận bản soạn; email kèm mục "Chương trình tham quan (điều chỉnh theo yêu cầu của quý khách)" + đơn giá "báo giá riêng cho quý khách". Chưa cấu hình EmailJS → nút thành "Mở email với nội dung đã soạn" (mailto).

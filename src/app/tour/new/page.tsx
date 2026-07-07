@@ -4,9 +4,9 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { ScenicSpot, Tour, TourDay, Departure } from "@/lib/types";
-import { getAllSpots, addTour, getTour, updateTour, ensureSeeded } from "@/lib/store";
+import { getAllSpots, addTour, getTour, getTours, updateTour, ensureSeeded } from "@/lib/store";
 import { useCloudRefresh, uploadImageCloud } from "@/lib/cloud";
-import { slugify } from "@/lib/slug";
+import { makeTourCode } from "@/lib/slug";
 import { resizeImage } from "@/lib/image";
 
 function emptyDay(n: number): TourDay {
@@ -23,7 +23,6 @@ function TourEditor() {
   const editing = Boolean(editCode);
 
   const [allSpots, setAllSpots] = useState<ScenicSpot[]>([]);
-  const [code, setCode] = useState("");
   const [titleVn, setTitleVn] = useState("");
   const [titleCn, setTitleCn] = useState("");
   const [tagline, setTagline] = useState("");
@@ -45,7 +44,7 @@ function TourEditor() {
     if (!editCode) return;
     const t = getTour(editCode);
     if (t) {
-      setCode(t.code); setTitleVn(t.title_vn); setTitleCn(t.title_cn || ""); setTagline(t.tagline_vn || "");
+      setTitleVn(t.title_vn); setTitleCn(t.title_cn || ""); setTagline(t.tagline_vn || "");
       setNights(t.nights); setAirline(t.airline || ""); setCover(t.cover);
       setCities((t.cities || []).join(", ")); setHotels(t.hotels_note || "");
       setIncludes(t.includes || ""); setExcludes(t.excludes || "");
@@ -102,9 +101,19 @@ function TourEditor() {
 
   const canSave = titleVn.trim().length > 0;
 
+  // Ma tour tu sinh: chu cai dau cac tu trong ten + ngay tao DDMMYY
+  // (vd "THANH DAO" tao 02/01/2026 -> TD020126). Sua tour thi giu ma cu.
+  const previewCode = editing
+    ? editCode || ""
+    : titleVn.trim()
+    ? makeTourCode(titleVn, getTours().map((t) => t.code))
+    : "";
+
   function save() {
     if (!canSave) return;
-    const finalCode = (editing && editCode) ? editCode : (code.trim() || slugify(titleVn).toUpperCase());
+    const finalCode = (editing && editCode)
+      ? editCode
+      : makeTourCode(titleVn, getTours().map((t) => t.code));
     const payload: Tour = {
       code: finalCode,
       title_vn: titleVn.trim(),
@@ -140,7 +149,11 @@ function TourEditor() {
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block"><span className={label}>Tên tiếng Trung</span><input value={titleCn} onChange={(e) => setTitleCn(e.target.value)} className={input} /></label>
-            <label className="block"><span className={label}>Mã tour {editing ? "(không đổi)" : ""}</span><input value={editing ? editCode || "" : code} onChange={(e) => setCode(e.target.value)} disabled={editing} placeholder="TD-5N4D" className={input + (editing ? " opacity-60" : "")} /></label>
+            <label className="block">
+              <span className={label}>Mã tour {editing ? "(không đổi)" : "(tự sinh: tên viết tắt + ngày tạo)"}</span>
+              <input value={previewCode || "— nhập tên tour để sinh mã —"} disabled
+                className={input + " font-mono opacity-70"} />
+            </label>
           </div>
           <label className="block"><span className={label}>Tagline</span><input value={tagline} onChange={(e) => setTagline(e.target.value)} className={input} /></label>
           <label className="block"><span className={label}>Thành phố (cách nhau bằng dấu phẩy)</span><input value={cities} onChange={(e) => setCities(e.target.value)} placeholder="Thanh Đảo, Uy Hải, Bồng Lai" className={input} /></label>
