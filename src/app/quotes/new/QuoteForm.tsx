@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getTours, addQuote, updateQuote, getQuote, spotMap, getCustomers, ensureSeeded, type Customer } from "@/lib/store";
 import { useCloudRefresh } from "@/lib/cloud";
+import { useRole } from "@/lib/useRole";
 import type { ScenicSpot, Tour, Departure } from "@/lib/types";
 import { cny } from "@/lib/format";
 import { slugify } from "@/lib/slug";
@@ -88,6 +89,7 @@ function Form() {
   const params = useSearchParams();
   const editId = params.get("edit");
   const editing = Boolean(editId);
+  const isAdmin = useRole() === "admin";
 
   const [programs, setPrograms] = useState<Program[]>([]);
   const [map, setMap] = useState<Record<string, ScenicSpot>>({});
@@ -167,6 +169,15 @@ function Form() {
   const inputCls =
     "mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15";
   const labelCls = "text-xs font-medium text-[var(--text-muted)]";
+
+  if (!isAdmin) {
+    return (
+      <div className="mt-10 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center">
+        <p className="text-sm text-[var(--text-muted)]">Trang này chỉ dành cho quản trị viên. Vui lòng đăng nhập admin.</p>
+        <Link href="/tours" className="mt-3 inline-block rounded-lg border bg-white px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">← Xem tour</Link>
+      </div>
+    );
+  }
 
   if (programs.length === 0) {
     return (

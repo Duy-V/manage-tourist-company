@@ -61,6 +61,15 @@ export default function QuotesPage() {
 
   const cb = "h-4 w-4 cursor-pointer accent-[var(--accent)]";
 
+  if (!isAdmin) {
+    return (
+      <main className="mx-auto max-w-6xl px-6 py-20 text-center">
+        <p className="text-sm text-[var(--text-muted)]">Trang này chỉ dành cho quản trị viên. Vui lòng đăng nhập admin.</p>
+        <Link href="/tours" className="mt-3 inline-block rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">← Xem tour</Link>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-12">
       <div className="flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-end sm:justify-between">
