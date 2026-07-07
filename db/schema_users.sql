@@ -24,20 +24,45 @@ create table if not exists profiles (
   email text,
   display_name text,
   role text not null default 'user' check (role in ('user', 'admin')),
+  status text not null default 'active' check (status in ('active', 'suspended')),
   created_at timestamptz default now()
 );
 
--- Da lo chay ban cu (chua co cot role)? Dong nay bo sung, chay lai an toan.
+-- Da lo chay ban cu? 2 dong nay bo sung cot con thieu, chay lai an toan.
 alter table profiles add column if not exists role text not null default 'user';
+alter table profiles add column if not exists status text not null default 'active';
 
 alter table profiles enable row level security;
 
-drop policy if exists "read profiles" on profiles;
-create policy "read profiles" on profiles for select using (true);
+-- Ham kiem tra admin (security definer de tranh de quy RLS khi policy
+-- cua chinh bang profiles can doc profiles)
+create or replace function public.is_admin()
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
+$$;
 
--- KHONG cho client tu sua profile (tranh tu nang role len admin).
--- Sua role chi lam trong Dashboard (Table Editor / SQL Editor — bo qua RLS).
+-- Doc: moi nguoi chi thay profile CUA MINH; admin thay tat ca
+-- (khong con "read profiles using true" — tranh lo email nguoi dung)
+drop policy if exists "read profiles" on profiles;
+drop policy if exists "read own profile" on profiles;
+create policy "read own profile" on profiles
+  for select using (auth.uid() = id);
+drop policy if exists "admin read profiles" on profiles;
+create policy "admin read profiles" on profiles
+  for select using (public.is_admin());
+
+-- KHONG cho user thuong sua profile (tranh tu nang role len admin).
 drop policy if exists "update own profile" on profiles;
+
+-- Admin duoc sua (tam ngung / mo lai / cap - ha quyen) va xoa profile
+drop policy if exists "admin update profiles" on profiles;
+create policy "admin update profiles" on profiles
+  for update using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "admin delete profiles" on profiles;
+create policy "admin delete profiles" on profiles
+  for delete using (public.is_admin());
 
 -- >>> PHONG ADMIN CHO CHINH BAN: sau khi dang ky + xac thuc email xong,
 -- bo comment dong duoi (xoa 2 dau gach) roi Run de len quyen admin:
@@ -84,10 +109,14 @@ alter table reviews enable row level security;
 drop policy if exists "read reviews" on reviews;
 create policy "read reviews" on reviews for select using (true);
 
--- Chi nguoi da dang nhap (da xac thuc email) moi viet, va chi viet duoi ten minh
+-- Chi nguoi da dang nhap (da xac thuc email) VA khong bi tam ngung
+-- moi viet duoc, va chi viet duoi ten minh
 drop policy if exists "insert own review" on reviews;
 create policy "insert own review" on reviews
-  for insert with check (auth.uid() = user_id);
+  for insert with check (
+    auth.uid() = user_id
+    and exists (select 1 from profiles where id = auth.uid() and status = 'active')
+  );
 
 -- Chi duoc sua / xoa danh gia cua chinh minh
 drop policy if exists "update own review" on reviews;
@@ -97,3 +126,8 @@ create policy "update own review" on reviews
 drop policy if exists "delete own review" on reviews;
 create policy "delete own review" on reviews
   for delete using (auth.uid() = user_id);
+
+-- Admin kiem duyet: duoc xoa binh luan cua bat ky ai
+drop policy if exists "admin delete reviews" on reviews;
+create policy "admin delete reviews" on reviews
+  for delete using (public.is_admin());

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useUser, displayNameOf } from "@/lib/useUser";
-import { useRole } from "@/lib/useRole";
+import { useProfileInfo } from "@/lib/useRole";
 
 const inputCls =
   "mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15";
@@ -22,7 +22,7 @@ function viError(msg: string): string {
 
 export default function AccountPage() {
   const { user, loading } = useUser();
-  const role = useRole();
+  const { role, status } = useProfileInfo();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,7 +57,15 @@ export default function AccountPage() {
             ) : (
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">Người dùng</span>
             )}
+            {status === "suspended" && (
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">⏸ Tạm ngưng</span>
+            )}
           </div>
+          {status === "suspended" && (
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Tài khoản đang bị tạm ngưng — bạn không thể viết đánh giá. Vui lòng liên hệ quản trị viên.
+            </p>
+          )}
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/tours" className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)]">
               Xem tour & đánh giá
