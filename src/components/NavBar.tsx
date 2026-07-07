@@ -11,6 +11,7 @@ const NAV: { href: string; label: string; adminOnly?: boolean }[] = [
   { href: "/quotes", label: "Báo giá" },
   { href: "/requests", label: "Yêu cầu", adminOnly: true },
   { href: "/customers", label: "Khách hàng", adminOnly: true },
+  { href: "/users", label: "Người dùng", adminOnly: true },
 ];
 
 export default function NavBar() {

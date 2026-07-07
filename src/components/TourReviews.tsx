@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useUser, displayNameOf } from "@/lib/useUser";
+import { useProfileInfo } from "@/lib/useRole";
 
 interface Review {
   id: string;
@@ -31,6 +32,7 @@ function Stars({ n, className = "" }: { n: number; className?: string }) {
 
 export default function TourReviews({ tourCode }: { tourCode: string }) {
   const { user } = useUser();
+  const { role, status } = useProfileInfo();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [rating, setRating] = useState(5);
@@ -93,7 +95,11 @@ export default function TourReviews({ tourCode }: { tourCode: string }) {
       </div>
 
       {/* Form viet danh gia */}
-      {user ? (
+      {user && status === "suspended" ? (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
+          Tài khoản của bạn đang bị tạm ngưng nên không thể viết đánh giá. Vui lòng liên hệ quản trị viên.
+        </div>
+      ) : user ? (
         <div className="mt-4 rounded-2xl border bg-white p-5">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium">{displayNameOf(user)}</span>
@@ -138,10 +144,10 @@ export default function TourReviews({ tourCode }: { tourCode: string }) {
         ) : (
           reviews.map((r) => (
             <article key={r.id} className="group relative rounded-xl border bg-white p-4">
-              {user?.id === r.user_id && (
+              {(user?.id === r.user_id || role === "admin") && (
                 <button
                   onClick={() => void remove(r.id)}
-                  title="Xóa đánh giá của bạn"
+                  title={user?.id === r.user_id ? "Xóa đánh giá của bạn" : "Xóa đánh giá (quản trị)"}
                   className="absolute right-3 top-3 hidden h-6 w-6 items-center justify-center rounded-full text-rose-600 hover:bg-rose-50 group-hover:flex"
                 >×</button>
               )}

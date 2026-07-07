@@ -73,6 +73,11 @@ song ngữ Việt/Trung theo mẫu docx gốc: tiêu đề, khách hàng, bảng
 - **Báo giá đã lưu cũng đồng bộ** (bảng `app_quotes`: id, customer_name, itinerary_name, departure_date, total + jsonb `data`; cover base64 bị lược khi đẩy lên cloud). → **TOÀN BỘ 5 loại dữ liệu đã trên Supabase.**
 - **Ảnh = Supabase Storage** (`db/schema_storage.sql`, bucket public `images`): form upload (AutoForm cảnh điểm, cover tour) resize → `uploadImageCloud()` → chỉ lưu URL public (fallback dataURL khi chưa có cloud). `migrateDataUrlImages()` (CloudSync gọi sau pullAll) tự dọn ảnh base64 cũ còn sót lên Storage. `QuoteRequestForm` không copy cover base64 vào yêu cầu.
 
+## CẬP NHẬT 07/07 (2) — Trang quản lý người dùng /users (admin)
+- `profiles` thêm cột `status` ('active'|'suspended') + hàm `public.is_admin()` (security definer, tránh đệ quy RLS). Policies mới: chỉ đọc profile CỦA MÌNH, admin đọc/sửa/xóa tất cả (không còn lộ email công khai); admin xóa được review bất kỳ; user bị tạm ngưng bị RLS chặn viết review.
+- `/users` (NavBar "Người dùng", adminOnly): danh sách tài khoản (tên, email, role, trạng thái, ngày tạo) + bình luận của từng người; nút Tạm ngưng/Mở lại, Cấp/Hạ quyền admin, Xóa tài khoản (= xóa profile + reviews; xóa hẳn login trong Dashboard > Authentication > Users), xóa từng bình luận (kiểm duyệt); thống kê tổng/mới 7 ngày/admin/tạm ngưng; không thao tác được lên chính mình.
+- `useRole.ts` → thêm `useProfileInfo()` trả {role, status}; admin bị tạm ngưng mất quyền. TourReviews: admin xóa mọi review; user tạm ngưng thấy thông báo thay vì form. /account hiện badge Tạm ngưng.
+
 ## CẬP NHẬT 07/07 — Phân quyền bằng cột role (BỎ HẲN login demo admin/admin123)
 - Admin và user **dùng chung form** `/account` (Supabase Auth). Quyền lấy từ cột `role` trong `profiles`: `'admin'` | `'user'` (mặc định). Cấp admin = sửa role trong Dashboard/SQL (client KHÔNG có policy update profiles → không tự nâng quyền được).
 - `src/lib/useRole.ts` viết lại: đọc role từ profiles theo user đang đăng nhập (có cache theo uid); trả `"admin" | "user" | "viewer"`. Mọi trang check `useRole() === "admin"` giữ nguyên.
