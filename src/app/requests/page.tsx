@@ -6,11 +6,10 @@ import {
   getQuoteRequests,
   updateQuoteRequest,
   deleteQuoteRequest,
-  getTour,
   type QuoteRequest,
   type QuoteRequestStatus,
 } from "@/lib/store";
-import { sendQuoteEmail, emailConfigured } from "@/lib/emailQuote";
+import QuoteComposer from "@/components/QuoteComposer";
 import { useRole } from "@/lib/useRole";
 import { useCloudRefresh, pullAllFromCloud } from "@/lib/cloud";
 import { matches } from "@/lib/search";
@@ -36,24 +35,8 @@ export default function RequestsPage() {
   const [items, setItems] = useState<QuoteRequest[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<QuoteRequestStatus | "all">("all");
-  const [sendingId, setSendingId] = useState<string | null>(null);
-
-  async function sendEmail(r: QuoteRequest) {
-    if (!r.email || sendingId) return;
-    const tour = getTour(r.tourCode);
-    if ((!tour || tour.departures.length === 0) &&
-        !confirm("Tour này chưa có bảng giá — email sẽ không kèm giá cụ thể. Vẫn gửi?")) return;
-    setSendingId(r.id);
-    const result = await sendQuoteEmail(r, tour);
-    setSendingId(null);
-    if (result === "sent") {
-      updateQuoteRequest(r.id, { status: "contacted", emailedAt: Date.now() });
-      refresh();
-    } else if (result === "error") {
-      alert("Gửi email thất bại — kiểm tra cấu hình EmailJS trong .env.local (xem .env.local.example).");
-    }
-    // "mailto": da mo ung dung email cua admin, admin tu bam gui o do
-  }
+  // Yeu cau dang mo bang "Soan bao gia" (null = dong)
+  const [composeFor, setComposeFor] = useState<QuoteRequest | null>(null);
 
   function refresh() {
     setItems(getQuoteRequests().sort((a, b) => b.createdAt - a.createdAt));
@@ -172,12 +155,12 @@ export default function RequestsPage() {
 
                   <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
                     <button
-                      onClick={() => void sendEmail(r)}
-                      disabled={!r.email || sendingId === r.id}
-                      title={r.email ? `Gửi báo giá tới ${r.email}` : "Khách không để lại email"}
+                      onClick={() => setComposeFor(r)}
+                      disabled={!r.email}
+                      title={r.email ? `Soạn báo giá gửi tới ${r.email}` : "Khách không để lại email"}
                       className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {sendingId === r.id ? "Đang gửi…" : emailConfigured ? "✉ Gửi giá qua email" : "✉ Soạn email báo giá"}
+                      ✉ Soạn báo giá
                     </button>
                   </div>
 
@@ -201,6 +184,18 @@ export default function RequestsPage() {
             );
           })}
         </div>
+      )}
+
+      {composeFor && (
+        <QuoteComposer
+          request={composeFor}
+          onClose={() => setComposeFor(null)}
+          onSent={() => {
+            updateQuoteRequest(composeFor.id, { status: "contacted", emailedAt: Date.now() });
+            setComposeFor(null);
+            refresh();
+          }}
+        />
       )}
     </main>
   );

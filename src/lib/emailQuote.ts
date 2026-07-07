@@ -40,9 +40,25 @@ export function pickDeparture(tour: Tour, departureDate?: string): Departure | u
   return tour.departures.reduce((a, b) => (b.adult < a.adult ? b : a));
 }
 
-export function buildQuoteEmail(r: QuoteRequest, tour: Tour | undefined) {
-  const dep = tour ? pickDeparture(tour, r.departureDate) : undefined;
+// Ban bao gia da duoc admin SOAN LAI trong bang "Soan bao gia" o /requests:
+// lich trinh (canh diem tung ngay) da dieu chinh theo yeu cau khach + gia moi.
+export interface ComposedQuote {
+  days: { day_no: number; spotNames: string[] }[];
+  adultPrice: number;
+  childPrice: number;
+  infantPrice: number;
+}
+
+export function buildQuoteEmail(r: QuoteRequest, tour: Tour | undefined, composed?: ComposedQuote) {
   const days = tour ? `${tour.days} ngày ${tour.nights} đêm` : "";
+
+  // Gia: uu tien ban soan cua admin; khong co thi lay tu bang gia tour
+  const dep = composed ? undefined : tour ? pickDeparture(tour, r.departureDate) : undefined;
+  const prices = composed
+    ? { adult: composed.adultPrice, child: composed.childPrice, infant: composed.infantPrice, label: "báo giá riêng cho quý khách" }
+    : dep
+    ? { adult: dep.adult, child: dep.child, infant: dep.infant, label: dep.month ? `áp dụng ${dep.month}` : "tham khảo" }
+    : null;
 
   const paxParts: string[] = [];
   if (r.adults > 0) paxParts.push(`${r.adults} người lớn`);
@@ -51,11 +67,20 @@ export function buildQuoteEmail(r: QuoteRequest, tour: Tour | undefined) {
 
   const priceLines: string[] = [];
   let total = 0;
-  if (dep) {
-    if (r.adults > 0) { priceLines.push(`- Người lớn: ${cny(dep.adult)} × ${r.adults} = ${cny(dep.adult * r.adults)}`); total += dep.adult * r.adults; }
-    if (r.children > 0) { priceLines.push(`- Trẻ em 2–11: ${cny(dep.child)} × ${r.children} = ${cny(dep.child * r.children)}`); total += dep.child * r.children; }
-    if (r.infants > 0) { priceLines.push(`- Em bé dưới 2: ${cny(dep.infant)} × ${r.infants} = ${cny(dep.infant * r.infants)}`); total += dep.infant * r.infants; }
+  if (prices) {
+    if (r.adults > 0) { priceLines.push(`- Người lớn: ${cny(prices.adult)} × ${r.adults} = ${cny(prices.adult * r.adults)}`); total += prices.adult * r.adults; }
+    if (r.children > 0) { priceLines.push(`- Trẻ em 2–11: ${cny(prices.child)} × ${r.children} = ${cny(prices.child * r.children)}`); total += prices.child * r.children; }
+    if (r.infants > 0) { priceLines.push(`- Em bé dưới 2: ${cny(prices.infant)} × ${r.infants} = ${cny(prices.infant * r.infants)}`); total += prices.infant * r.infants; }
   }
+
+  // Lich trinh tham quan (chi kem khi admin soan — da chinh theo y khach)
+  const itinLines: string[] = composed && composed.days.length > 0
+    ? [
+        ``,
+        `Chương trình tham quan (điều chỉnh theo yêu cầu của quý khách):`,
+        ...composed.days.map((d) => `- Ngày ${d.day_no}: ${d.spotNames.length ? d.spotNames.join(", ") : "(tự do)"}`),
+      ]
+    : [];
 
   const subject = `[GHIỀN ĐI] Báo giá ${r.tourName}`;
   const body = [
@@ -66,9 +91,10 @@ export function buildQuoteEmail(r: QuoteRequest, tour: Tour | undefined) {
     `• Tour: ${r.tourName}${days ? ` (${days})` : ""}`,
     r.departureDate ? `• Ngày khởi hành mong muốn: ${isoToVN(r.departureDate)}` : null,
     `• Số khách: ${paxParts.join(", ")}`,
+    ...itinLines,
     ``,
-    ...(dep
-      ? [`Đơn giá (${dep.month ? `áp dụng ${dep.month}` : "tham khảo"}, CNY/khách):`, ...priceLines, ``, `TỔNG CỘNG: ${cny(total)}`]
+    ...(prices
+      ? [`Đơn giá (${prices.label}, CNY/khách):`, ...priceLines, ``, `TỔNG CỘNG: ${cny(total)}`]
       : [`Giá tour: vui lòng liên hệ để được tư vấn chi tiết.`]),
     r.note ? `` : null,
     r.note ? `Ghi chú của quý khách: ${r.note}` : null,
@@ -79,14 +105,18 @@ export function buildQuoteEmail(r: QuoteRequest, tour: Tour | undefined) {
     `GHIỀN ĐI · Tour Sơn Đông`,
   ].filter((x): x is string => x !== null).join("\n");
 
-  return { subject, body, hasPrice: Boolean(dep), total };
+  return { subject, body, hasPrice: Boolean(prices), total };
 }
 
 export type SendResult = "sent" | "mailto" | "error";
 
-export async function sendQuoteEmail(r: QuoteRequest, tour: Tour | undefined): Promise<SendResult> {
+export async function sendQuoteEmail(
+  r: QuoteRequest,
+  tour: Tour | undefined,
+  composed?: ComposedQuote
+): Promise<SendResult> {
   if (!r.email) return "error";
-  const { subject, body } = buildQuoteEmail(r, tour);
+  const { subject, body } = buildQuoteEmail(r, tour, composed);
 
   if (!emailConfigured) {
     // Fallback: mo ung dung email cua admin voi noi dung soan san
