@@ -44,6 +44,7 @@ export default function UsersPage() {
   const [reviews, setReviews] = useState<ReviewRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [q, setQ] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"user" | "admin" | "all">("user");
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function load() {
@@ -72,7 +73,12 @@ export default function UsersPage() {
     return p;
   }, [profiles]);
 
-  const shown = profiles.filter((u) => matches([u.display_name ?? "", u.email ?? ""], q));
+  const shown = profiles.filter(
+    (u) =>
+      (roleFilter === "all" ||
+        (roleFilter === "admin" ? u.role === "admin" : u.role !== "admin")) &&
+      matches([u.display_name ?? "", u.email ?? ""], q)
+  );
 
   if (role !== "admin") {
     return (
@@ -144,8 +150,15 @@ export default function UsersPage() {
       </div>
 
       {profiles.length > 0 && (
-        <div className="mt-5">
-          <SearchBox query={q} setQuery={setQ} pool={pool} placeholder="Tìm theo tên hoặc email…" />
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <SearchBox query={q} setQuery={setQ} pool={pool} placeholder="Tìm theo tên hoặc email…" />
+          </div>
+          <div className="flex gap-1.5 text-sm">
+            <FilterBtn on={roleFilter === "user"} onClick={() => setRoleFilter("user")}>Người dùng</FilterBtn>
+            <FilterBtn on={roleFilter === "admin"} onClick={() => setRoleFilter("admin")}>Quản trị viên</FilterBtn>
+            <FilterBtn on={roleFilter === "all"} onClick={() => setRoleFilter("all")}>Tất cả</FilterBtn>
+          </div>
         </div>
       )}
 
@@ -153,7 +166,13 @@ export default function UsersPage() {
         <p className="mt-10 text-sm text-[var(--text-muted)]">Đang tải danh sách…</p>
       ) : shown.length === 0 ? (
         <div className="mt-12 rounded-2xl border border-dashed bg-[var(--muted)] p-12 text-center text-sm text-[var(--text-muted)]">
-          {q ? `Không tìm thấy tài khoản nào khớp "${q}".` : "Chưa có ai đăng ký tài khoản."}
+          {q
+            ? `Không tìm thấy tài khoản nào khớp "${q}".`
+            : roleFilter === "user"
+            ? "Chưa có tài khoản người dùng thường nào."
+            : roleFilter === "admin"
+            ? "Chưa có quản trị viên nào."
+            : "Chưa có ai đăng ký tài khoản."}
         </div>
       ) : (
         <div className="mt-6 space-y-4">
@@ -240,6 +259,17 @@ export default function UsersPage() {
         email khỏi hệ thống đăng nhập: Supabase Dashboard → Authentication → Users → Delete user.
       </p>
     </main>
+  );
+}
+
+function FilterBtn({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg border px-3 py-1.5 font-medium transition ${on ? "border-[var(--accent)] bg-[var(--accent)] text-white" : "bg-white hover:bg-[var(--muted)]"}`}
+    >
+      {children}
+    </button>
   );
 }
 
