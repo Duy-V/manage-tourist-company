@@ -61,6 +61,7 @@ export default function TourDetailClient({ params }: { params: Promise<{ code: s
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t bg-[var(--muted)] px-6 py-3 text-sm">
+          <span className="rounded-md border bg-white px-2 py-0.5 font-mono text-xs font-semibold" title="Mã tour">{tour.code}</span>
           <span><b>{tour.days}</b> ngày <b>{tour.nights}</b> đêm</span>
           {tour.airline && <span>✈ {tour.airline}</span>}
           {tour.departures.length > 0 && (
